@@ -12,11 +12,7 @@ import FinalChainInput from './inputs/FinalChainInput';
 import FinalBlindInput from './inputs/FinalBlindInput';
 import AsmStepInput from './inputs/AsmStepInput';
 import AsmQuizInput from './inputs/AsmQuizInput';
-import SymbolTable from './tools/SymbolTable';
-import HexCalculator from './tools/HexCalculator';
-import PayloadBuilder from './tools/PayloadBuilder';
-import GadgetTable from './tools/GadgetTable';
-import SigframeBuilder from './tools/SigframeBuilder';
+import Toolkit from './Toolkit';
 
 export default function InputPanel() {
   const { currentExercise, asmEmulator } = useExerciseContext();
@@ -85,18 +81,8 @@ export default function InputPanel() {
       <div className="panel-hdr">input</div>
       <div className="panel-body">
         <div id="input-area">
-          {ex && (
-            <div
-              style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '0.5rem' }}
-              dangerouslySetInnerHTML={{ __html: ex.desc }}
-            />
-          )}
           {content}
-          {ex && <SymbolTable />}
-          {ex?.showCalc && <HexCalculator />}
-          {ex && <PayloadBuilder />}
-          {ex && <GadgetTable />}
-          {ex && <SigframeBuilder />}
+          {ex && <Toolkit exercise={ex} />}
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import './globals.css';
 
-export const metadata = { title: 'Memory Corruption Lab' };
+export const metadata = { title: '0xVRIG' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
