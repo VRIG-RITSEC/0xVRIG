@@ -1581,6 +1581,158 @@ const EXERCISES = [
     winTitle: 'FLAG{house_of_force}',
     winMsg: 'By corrupting the top chunk size to -1 (0xFFFFFFFF), you told the allocator it has unlimited memory. Then a carefully calculated malloc moved the top chunk pointer to your target. The next allocation landed right on top of the function pointer table. This is the House of Force.',
   },
+
+  // Exercise 23 (index 22): House of Spirit
+  {
+    title: '23: House of Spirit',
+    unit: 5,
+    desc: 'Instead of overflowing TO a chunk, what if you could create a chunk FROM NOTHING? <strong>House of Spirit</strong> crafts a fake chunk in memory (e.g. on the stack) by writing the right header values. When you call <code>free()</code> on the fake chunk\'s address, the allocator accepts it — it just trusts the metadata! The next <code>malloc()</code> of that size returns YOUR chosen address.',
+    code: [
+      { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void (**handler)();  // at 0x0804a040', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    char stack_buf[64];', cls: '' },
+      { text: '    // Write fake chunk header at stack_buf', cls: 'cmt' },
+      { text: '    *(size_t*)(stack_buf+0) = 0;', cls: 'highlight' },
+      { text: '    *(size_t*)(stack_buf+4) = 0x19;', cls: 'highlight vuln' },
+      { text: '    // 0x19 = 24 | PREV_INUSE', cls: 'cmt' },
+      { text: '    // Write next-chunk header for sanity check', cls: 'cmt' },
+      { text: '    *(size_t*)(stack_buf+24) = 0;', cls: 'highlight' },
+      { text: '    *(size_t*)(stack_buf+28) = 0x19;', cls: 'highlight' },
+      { text: '    // free the fake chunk (data starts at +8)', cls: 'cmt' },
+      { text: '    free(stack_buf + 8);', cls: 'highlight vuln' },
+      { text: '    char *p = malloc(16);', cls: 'highlight' },
+      { text: '    // p points to stack_buf + 8!', cls: 'cmt' },
+      { text: '    *(void**)p = win;', cls: 'highlight' },
+      { text: '    (*handler)();', cls: 'highlight' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'heap-house-spirit',
+    vizMode: 'heap',
+    heapSize: 512,
+    showSymbols: true,
+    funcPtrAddr: 0x0804a040,
+    check(heap) { return heap.funcPtrs.handler && heap.funcPtrs.handler.current === state.symbols.win; },
+    winTitle: 'FLAG{house_of_spirit}',
+    winMsg: 'You created a fake chunk by writing the right header values at the right offsets. The allocator just trusts the metadata \u2014 if the headers look valid, free() accepts it. The next malloc returns YOUR chosen address. This is House of Spirit \u2014 get allocation anywhere by faking the metadata.',
+  },
+
+  // Exercise 24 (index 23): House of Orange
+  {
+    title: '24: House of Orange',
+    unit: 5,
+    desc: 'What if there\'s no <code>free()</code> call anywhere in the program? <strong>House of Orange</strong> corrupts the top chunk size via overflow, then a large <code>malloc()</code> that exceeds the (now-small) top triggers <code>sysmalloc</code>, which frees the old top chunk into the unsorted bin. Now you have a freed chunk to exploit \u2014 without ever calling free()!',
+    code: [
+      { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void (**handler)();  // at 0x0804a040', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    char *a = malloc(16);', cls: '' },
+      { text: '    // Overflow from a into top chunk size', cls: 'cmt' },
+      { text: '    *(size_t*)(a+16) = 0;', cls: 'highlight' },
+      { text: '    *(size_t*)(a+20) = 0x81;', cls: 'highlight vuln' },
+      { text: '    // Top chunk now thinks it\'s only 0x80 bytes', cls: 'cmt' },
+      { text: '    char *b = malloc(256);', cls: 'highlight' },
+      { text: '    // 256 > 0x80 - triggers sysmalloc!', cls: 'cmt' },
+      { text: '    // Old top chunk freed to unsorted bin', cls: 'cmt' },
+      { text: '    // UAF: corrupt old top\'s bk pointer', cls: 'cmt' },
+      { text: '    // malloc from unsorted writes to bk->fd', cls: 'cmt' },
+      { text: '    char *c = malloc(96);', cls: 'highlight' },
+      { text: '    // Triggers unsorted bin unlink!', cls: 'cmt' },
+      { text: '    (*handler)();', cls: 'highlight' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'heap-house-orange',
+    vizMode: 'heap',
+    heapSize: 512,
+    showSymbols: true,
+    showCalc: true,
+    funcPtrAddr: 0x0804a040,
+    check(heap) { return heap.funcPtrs.handler && heap.funcPtrs.handler.current !== state.symbols.normal && heap.funcPtrs.handler.current !== 0; },
+    winTitle: 'FLAG{house_of_orange}',
+    winMsg: 'No free()? No problem. By corrupting the top chunk size and triggering a large allocation, you forced the allocator to free the old top chunk itself. Then you used the freed chunk to overwrite a function pointer. This is House of Orange \u2014 creating a free without calling free().',
+  },
+
+  // Exercise 25 (index 24): House of Einherjar
+  {
+    title: '25: House of Einherjar',
+    unit: 5,
+    desc: 'An <strong>off-by-one null byte</strong> overflow clears the PREV_IN_USE flag of the next chunk. When that chunk is freed, the allocator thinks the previous chunk is also free and does <strong>backward consolidation</strong> \u2014 merging them into one huge chunk. By crafting a fake prev_size, you control where the merged chunk starts, giving you an overlapping allocation.',
+    code: [
+      { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void (**handler)();  // at 0x0804a040', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    char *a = malloc(16);', cls: '' },
+      { text: '    char *b = malloc(16);', cls: '' },
+      { text: '    char *c = malloc(16);', cls: '' },
+      { text: '    char *guard = malloc(16);', cls: '' },
+      { text: '    // Off-by-one from A: null byte into B header', cls: 'cmt' },
+      { text: '    a[16] = 0x00;', cls: 'highlight vuln' },
+      { text: '    // B\'s size 0x19 becomes 0x18 (PREV_INUSE cleared!)', cls: 'cmt' },
+      { text: '    // Set B\'s prev_size to span back to A', cls: 'cmt' },
+      { text: '    *(size_t*)(b-4) = 0x18;', cls: 'highlight' },
+      { text: '    free(c);', cls: 'highlight' },
+      { text: '    // Backward consolidation merges B+C into A', cls: 'cmt' },
+      { text: '    char *d = malloc(64);', cls: 'highlight' },
+      { text: '    // d overlaps with original chunks!', cls: 'cmt' },
+      { text: '    *(void**)d = win;', cls: 'highlight' },
+      { text: '    (*handler)();', cls: 'highlight' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'heap-house-einherjar',
+    vizMode: 'heap',
+    heapSize: 512,
+    showSymbols: true,
+    funcPtrAddr: 0x0804a040,
+    check(heap) { return heap.funcPtrs.handler && heap.funcPtrs.handler.current === state.symbols.win; },
+    winTitle: 'FLAG{house_of_einherjar}',
+    winMsg: 'A single null byte changed the prev_in_use flag, tricking the allocator into thinking the previous chunk was free. Backward consolidation merged chunks together, creating an overlapping allocation. This is House of Einherjar \u2014 one byte to control heap layout.',
+  },
+
+  // Exercise 26 (index 25): House of Lore
+  {
+    title: '26: House of Lore',
+    unit: 5,
+    desc: 'The <strong>smallbin</strong> is a doubly-linked list with both fd and bk pointers. When malloc removes a chunk from a smallbin, it checks that <code>victim->bk->fd == victim</code> (a consistency check). By corrupting a freed chunk\'s bk to point to a <strong>fake chunk</strong> whose fd points back to the real chunk, you pass the check. Two mallocs later, the allocator hands you the fake chunk \u2014 at YOUR chosen address.',
+    code: [
+      { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void (**handler)();  // at 0x0804a040', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    // Fill tcache for size 24', cls: 'cmt' },
+      { text: '    char *a = malloc(80);', cls: '' },
+      { text: '    char *guard = malloc(16);', cls: '' },
+      { text: '    free(a); // goes to unsorted bin (big)', cls: '' },
+      { text: '    malloc(120); // triggers sort into smallbin', cls: '' },
+      { text: '    // a is now in smallbin', cls: 'cmt' },
+      { text: '    // UAF: corrupt a\'s bk to point to fake chunk', cls: 'cmt' },
+      { text: '    fake_chunk.fd = &a; // pass bk->fd == victim', cls: 'highlight vuln' },
+      { text: '    a->bk = &fake_chunk;', cls: 'highlight vuln' },
+      { text: '    char *p1 = malloc(80); // returns a', cls: 'highlight' },
+      { text: '    char *p2 = malloc(80); // returns fake!', cls: 'highlight' },
+      { text: '    *(void**)p2 = win;', cls: 'highlight' },
+      { text: '    (*handler)();', cls: 'highlight' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'heap-house-lore',
+    vizMode: 'heap',
+    heapSize: 512,
+    showSymbols: true,
+    funcPtrAddr: 0x0804a040,
+    check(heap) { return heap.funcPtrs.handler && heap.funcPtrs.handler.current === state.symbols.win; },
+    winTitle: 'FLAG{house_of_lore}',
+    winMsg: 'You bypassed the doubly-linked list check by setting up both pointers correctly \u2014 the fake chunk\'s fd pointed back to the real bin. The allocator followed bk to your fake chunk and handed it out as a valid allocation. This is House of Lore \u2014 trick the linked list validation.',
+  },
 ];
 
 const UNITS = [
@@ -1588,7 +1740,7 @@ const UNITS = [
   { id: 2, name: 'LOGIC', exercises: [5, 6, 7, 8, 9] },
   { id: 3, name: 'STACK II', exercises: [10, 11, 12, 13] },
   { id: 4, name: 'HEAP', exercises: [14, 15, 16, 17] },
-  { id: 5, name: 'HEAP II', exercises: [18, 19, 20, 21] },
+  { id: 5, name: 'HEAP II', exercises: [18, 19, 20, 21, 22, 23, 24, 25] },
   { id: 6, name: 'FINAL', exercises: [] },
 ];
 
@@ -2388,6 +2540,186 @@ function renderInput(ex) {
     return;
   }
 
+  if (ex.mode === 'heap-house-spirit') {
+    const phase = state.heapPhase;
+    const inStep = phase === 'guided';
+    const inFakeHeaders = phase === 'fake-headers';
+    const inFree = phase === 'free-fake';
+    const inFinal = phase === 'final-write';
+    area.innerHTML = `
+      <div class="controls" id="heap-step-controls" ${inStep ? '' : 'style="display:none"'}>
+        <button class="primary" onclick="doHeapStep()">Step &rarr;</button>
+        <button onclick="doReset()">Reset</button>
+      </div>
+      <div id="heap-fake-headers-area" ${inFakeHeaders ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Write fake chunk headers into the stack buffer. Enter 32 hex bytes: prev_size (00 00 00 00) + size with PREV_INUSE (19 00 00 00) + 16 bytes data (anything) + next-chunk prev_size (00 00 00 00) + next-chunk size (19 00 00 00):</label>
+        <textarea id="payload-input" placeholder="e.g. 00 00 00 00 19 00 00 00 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 00 00 00 00 19 00 00 00" rows="2"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapSpiritFakeHeadersSubmit()">Write fake headers</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="heap-free-area" ${inFree ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Now free the fake chunk. Enter the data address of the fake chunk (stack_buf + 8) in hex:</label>
+        <textarea id="payload-input" placeholder="e.g. 0x08050008" rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapSpiritFreeSubmit()">free(fake_chunk)</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="heap-final-area" ${inFinal ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">malloc(16) returned the fake chunk! Write win()'s address in little-endian to overwrite the function pointer:</label>
+        <textarea id="payload-input" placeholder="e.g. 50 81 04 08" rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapSpiritFinalSubmit()">Write win() &amp; call handler()</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    builder.style.display = 'none';
+    renderHeapSymbols(syms, ex);
+    return;
+  }
+
+  if (ex.mode === 'heap-house-orange') {
+    const phase = state.heapPhase;
+    const inStep = phase === 'guided';
+    const inCorruptTop = phase === 'corrupt-top';
+    const inBkWrite = phase === 'bk-write';
+    area.innerHTML = `
+      <div class="controls" id="heap-step-controls" ${inStep ? '' : 'style="display:none"'}>
+        <button class="primary" onclick="doHeapStep()">Step &rarr;</button>
+        <button onclick="doReset()">Reset</button>
+      </div>
+      <div id="heap-corrupt-top-area" ${inCorruptTop ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Overflow from chunk A into the top chunk header. Enter hex bytes: 16 bytes padding + 4 bytes prev_size (00 00 00 00) + 4 bytes new size (must be valid: page-aligned end, PREV_INUSE set). Use 81 00 00 00 (0x81 = 128|1):</label>
+        <textarea id="payload-input" placeholder="e.g. 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 41 00 00 00 00 81 00 00 00" rows="2"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapOrangeCorruptSubmit()">Overflow into top chunk</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="heap-bk-write-area" ${inBkWrite ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">The old top chunk is now in the unsorted bin! Corrupt its bk pointer so that bk->fd points to the function pointer table. Set bk = funcPtrAddr - 8 (because fd is at offset 0 from data, which is at offset +8 from chunk start). Enter in little-endian:</label>
+        <textarea id="payload-input" placeholder="e.g. 38 a0 04 08" rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapOrangeBkSubmit()">Corrupt bk &amp; malloc</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    builder.style.display = 'none';
+    const calc = document.getElementById('hex-calc');
+    if (calc && (inCorruptTop || inBkWrite)) {
+      calc.style.display = 'block';
+      calc.innerHTML = `
+        <h4>Hex Calculator</h4>
+        <div class="calc-row">
+          <input id="calc-a" placeholder="value A" oninput="calcHex()">
+          <span class="calc-op" id="calc-op-btn" onclick="toggleCalcOp()" title="click to toggle" style="cursor:pointer">-</span>
+          <input id="calc-b" placeholder="value B" oninput="calcHex()">
+          <span class="calc-eq">=</span>
+          <span id="calc-result">&mdash;</span>
+        </div>
+        <div class="calc-hint">Use this to calculate funcPtrAddr - 8 for the bk pointer.</div>
+      `;
+    }
+    renderHeapSymbols(syms, ex);
+    return;
+  }
+
+  if (ex.mode === 'heap-house-einherjar') {
+    const phase = state.heapPhase;
+    const inStep = phase === 'guided';
+    const inNullByte = phase === 'null-byte';
+    const inFinal = phase === 'final-write';
+    area.innerHTML = `
+      <div class="controls" id="heap-step-controls" ${inStep ? '' : 'style="display:none"'}>
+        <button class="primary" onclick="doHeapStep()">Step &rarr;</button>
+        <button onclick="doReset()">Reset</button>
+      </div>
+      <div id="heap-null-byte-area" ${inNullByte ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Off-by-one from chunk A: write one null byte (00) past A's data to clear PREV_INUSE in B's size field. Also set B's prev_size to 0x18 so consolidation merges back to A's start. Enter "yes" to execute the off-by-one:</label>
+        <textarea id="payload-input" placeholder="Type: yes" rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapEinherjarNullByteSubmit()">Execute off-by-one</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="heap-final-area" ${inFinal ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Consolidation created an overlapping chunk! malloc(64) returned a chunk that overlaps with the function pointer area. Write win()'s address in little-endian:</label>
+        <textarea id="payload-input" placeholder="e.g. 50 81 04 08" rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapEinherjarFinalSubmit()">Write win() &amp; call handler()</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    builder.style.display = 'none';
+    renderHeapSymbols(syms, ex);
+    return;
+  }
+
+  if (ex.mode === 'heap-house-lore') {
+    const phase = state.heapPhase;
+    const inStep = phase === 'guided';
+    const inCorrupt = phase === 'corrupt-bk';
+    const inFinal = phase === 'final-write';
+    area.innerHTML = `
+      <div class="controls" id="heap-step-controls" ${inStep ? '' : 'style="display:none"'}>
+        <button class="primary" onclick="doHeapStep()">Step &rarr;</button>
+        <button onclick="doReset()">Reset</button>
+      </div>
+      <div id="heap-corrupt-area" ${inCorrupt ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">The chunk is in the smallbin. Corrupt its bk pointer to point to our fake chunk (at the function pointer table - 8). The fake chunk's fd already points back to pass the check. Enter bk value in little-endian (funcPtrAddr - 8):</label>
+        <textarea id="payload-input" placeholder="e.g. 38 a0 04 08" rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapLoreCorruptSubmit()">Corrupt bk &amp; allocate</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="heap-final-area" ${inFinal ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">The second malloc returned the fake chunk at your target address! Write win()'s address in little-endian:</label>
+        <textarea id="payload-input" placeholder="e.g. 50 81 04 08" rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapLoreFinalSubmit()">Write win() &amp; call handler()</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    builder.style.display = 'none';
+    const calc = document.getElementById('hex-calc');
+    if (calc && inCorrupt) {
+      calc.style.display = 'block';
+      calc.innerHTML = `
+        <h4>Hex Calculator</h4>
+        <div class="calc-row">
+          <input id="calc-a" placeholder="funcPtrAddr" oninput="calcHex()">
+          <span class="calc-op" id="calc-op-btn" onclick="toggleCalcOp()" title="click to toggle" style="cursor:pointer">-</span>
+          <input id="calc-b" placeholder="8" oninput="calcHex()">
+          <span class="calc-eq">=</span>
+          <span id="calc-result">&mdash;</span>
+        </div>
+        <div class="calc-hint">Calculate funcPtrAddr - 8 for the fake chunk address.</div>
+      `;
+    }
+    renderHeapSymbols(syms, ex);
+    return;
+  }
+
   let modeHtml = '';
   if (ex.mode === 'input-hex') {
     modeHtml = `
@@ -2689,6 +3021,41 @@ function loadExercise(idx) {
     state.heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
   }
 
+  if (ex.mode === 'heap-house-spirit' && state.heap) {
+    // Reserve a region of heap memory to simulate a "stack buffer"
+    // We'll use the first 64 bytes of heap as the fake stack area
+    state.spiritStackAddr = 0; // offset in heap memory
+    state.spiritFakeChunkAddr = 0; // will be set when user writes headers
+    state.heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
+  }
+
+  if (ex.mode === 'heap-house-orange' && state.heap) {
+    const aAlloc = state.heap.malloc(16);
+    if (aAlloc) state.heapNames['A'] = aAlloc.addr;
+    state.heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
+  }
+
+  if (ex.mode === 'heap-house-einherjar' && state.heap) {
+    const aAlloc = state.heap.malloc(16);
+    const bAlloc = state.heap.malloc(16);
+    const cAlloc = state.heap.malloc(16);
+    const guardAlloc = state.heap.malloc(16);
+    if (aAlloc) state.heapNames['A'] = aAlloc.addr;
+    if (bAlloc) state.heapNames['B'] = bAlloc.addr;
+    if (cAlloc) state.heapNames['C'] = cAlloc.addr;
+    if (guardAlloc) state.heapNames['Guard'] = guardAlloc.addr;
+    state.heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
+  }
+
+  if (ex.mode === 'heap-house-lore' && state.heap) {
+    // Allocate a chunk big enough for smallbin (>64 bytes), plus a guard
+    const aAlloc = state.heap.malloc(80);
+    const guardAlloc = state.heap.malloc(16);
+    if (aAlloc) state.heapNames['A'] = aAlloc.addr;
+    if (guardAlloc) state.heapNames['Guard'] = guardAlloc.addr;
+    state.heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
+  }
+
   state.stepIndex = 0;
   state.execSteps = null;
   state.execIndex = 0;
@@ -2815,6 +3182,51 @@ function loadExercise(idx) {
     log('info', 'The function pointer table (handler) is at <span class="log-addr">' + hex8(ex.funcPtrAddr) + '</span>');
     log('info', 'win() is at <span class="log-addr">' + hex8(state.symbols.win) + '</span>');
     log('info', 'Click Step to walk through the House of Force attack.');
+  }
+
+  if (ex.mode === 'heap-house-spirit') {
+    const stackDisplayAddr = state.heap.baseAddr + state.spiritStackAddr;
+    log('info', 'We have a stack buffer at <span class="log-addr">' + hex8(stackDisplayAddr) + '</span> (64 bytes).');
+    log('info', 'The idea: write fake chunk headers into this buffer, then free() the fake chunk. The allocator trusts the metadata!');
+    log('info', 'A valid chunk needs: prev_size (4 bytes) + size with PREV_INUSE flag (4 bytes) + data. Also needs a valid next-chunk header after it.');
+    log('info', 'The function pointer table (handler) is at <span class="log-addr">' + hex8(ex.funcPtrAddr) + '</span>');
+    log('info', 'win() is at <span class="log-addr">' + hex8(state.symbols.win) + '</span>');
+    log('info', 'Click Step to walk through the House of Spirit attack.');
+  }
+
+  if (ex.mode === 'heap-house-orange') {
+    log('info', 'Chunk A (16 bytes) is allocated right before the top chunk.');
+    log('info', 'IMPORTANT: There is NO free() call in this program! We must create our own free.');
+    const topDataAddr = state.heap.topAddr;
+    const topDisplayAddr = state.heap.baseAddr + topDataAddr;
+    log('info', 'Top chunk starts at <span class="log-addr">' + hex8(topDisplayAddr) + '</span> with size ' + state.heap.topSize + '.');
+    log('info', 'The function pointer table (handler) is at <span class="log-addr">' + hex8(ex.funcPtrAddr) + '</span>');
+    log('info', 'main_arena is at <span class="log-addr">' + hex8(state.heap.mainArena) + '</span>');
+    log('info', 'Click Step to walk through the House of Orange attack.');
+  }
+
+  if (ex.mode === 'heap-house-einherjar') {
+    log('info', 'Four chunks allocated: A, B, C, and Guard (all 16 bytes each, 24 bytes with headers).');
+    const aAddr = state.heapNames['A'];
+    const bAddr = state.heapNames['B'];
+    const cAddr = state.heapNames['C'];
+    if (aAddr !== undefined && bAddr !== undefined && cAddr !== undefined) {
+      log('info', 'A at offset ' + aAddr + ', B at offset ' + bAddr + ', C at offset ' + cAddr);
+    }
+    log('info', 'An off-by-one null byte from A will clear B\'s PREV_INUSE flag. When C is freed, backward consolidation will create a huge overlapping chunk.');
+    log('info', 'The function pointer table (handler) is at <span class="log-addr">' + hex8(ex.funcPtrAddr) + '</span>');
+    log('info', 'win() is at <span class="log-addr">' + hex8(state.symbols.win) + '</span>');
+    log('info', 'Click Step to walk through the House of Einherjar attack.');
+  }
+
+  if (ex.mode === 'heap-house-lore') {
+    log('info', 'Chunk A (80 bytes) and a guard chunk are allocated.');
+    log('info', 'We will free A into the unsorted bin, then trigger a sort into the smallbin.');
+    log('info', 'The smallbin is a doubly-linked list with a consistency check: victim->bk->fd must equal victim.');
+    log('info', 'To bypass this, we set up a fake chunk whose fd points back to the real chunk.');
+    log('info', 'The function pointer table (handler) is at <span class="log-addr">' + hex8(ex.funcPtrAddr) + '</span>');
+    log('info', 'win() is at <span class="log-addr">' + hex8(state.symbols.win) + '</span>');
+    log('info', 'Click Step to walk through the House of Lore attack.');
   }
 
   if (ex.mode !== 'step' && !ex.mode.startsWith('heap-')) {
@@ -4295,6 +4707,104 @@ function doHeapStep() {
     renderLog();
     return;
   }
+
+  if (ex.mode === 'heap-house-spirit') {
+    if (state.heapStep >= HOS_STEPS.length) return;
+    const step = HOS_STEPS[state.heapStep];
+
+    if (step.log) step.log.forEach(([cls, msg]) => log(cls, msg));
+    if (step.srcLine !== undefined) highlightExecLine(step.srcLine);
+
+    state.heapStep++;
+
+    if (step.done) {
+      state.heapPhase = 'fake-headers';
+      renderInput(ex);
+    }
+
+    renderViz();
+    renderLog();
+    return;
+  }
+
+  if (ex.mode === 'heap-house-orange') {
+    if (state.heapStep >= HOO_STEPS.length) return;
+    const step = HOO_STEPS[state.heapStep];
+
+    if (step.log) step.log.forEach(([cls, msg]) => log(cls, msg));
+    if (step.srcLine !== undefined) highlightExecLine(step.srcLine);
+
+    state.heapStep++;
+
+    if (step.done) {
+      state.heapPhase = 'corrupt-top';
+      renderInput(ex);
+    }
+
+    renderViz();
+    renderLog();
+    return;
+  }
+
+  if (ex.mode === 'heap-house-einherjar') {
+    if (state.heapStep >= HOE_STEPS.length) return;
+    const step = HOE_STEPS[state.heapStep];
+
+    if (step.log) step.log.forEach(([cls, msg]) => log(cls, msg));
+    if (step.srcLine !== undefined) highlightExecLine(step.srcLine);
+
+    state.heapStep++;
+
+    if (step.done) {
+      state.heapPhase = 'null-byte';
+      renderInput(ex);
+    }
+
+    renderViz();
+    renderLog();
+    return;
+  }
+
+  if (ex.mode === 'heap-house-lore') {
+    if (state.heapStep >= HOL_STEPS.length) return;
+    const step = HOL_STEPS[state.heapStep];
+
+    if (step.doFree) {
+      const addr = state.heapNames[step.doFree];
+      if (addr !== undefined) state.heap.free(addr);
+    }
+    if (step.doMallocSort) {
+      // Simulate: request a different size, which triggers sorting of unsorted bin
+      // A goes from unsorted to smallbin
+      const sortAlloc = state.heap.malloc(120);
+      // A should have been moved to smallbin conceptually
+      // In our sim, the unsorted bin was checked; if A didn't fit, it gets sorted
+      // We simulate by putting A into a "smallbin" structure
+      const aAddr = state.heapNames['A'];
+      if (aAddr !== undefined) {
+        state.heap.smallbins = state.heap.smallbins || {};
+        const chunk = state.heap.chunks.get(aAddr);
+        if (chunk) {
+          const sz = chunk.size;
+          if (!state.heap.smallbins[sz]) state.heap.smallbins[sz] = [];
+          state.heap.smallbins[sz].push(aAddr);
+        }
+      }
+    }
+    if (step.log) step.log.forEach(([cls, msg]) => log(cls, msg));
+    if (step.srcLine !== undefined) highlightExecLine(step.srcLine);
+
+    state.heapStep++;
+
+    if (step.done) {
+      state.heapPhase = 'corrupt-bk';
+      renderInput(ex);
+    }
+
+    renderViz();
+    renderLog();
+    return;
+  }
 }
 
 // Double-free guided steps
@@ -4339,6 +4849,48 @@ const HOF_STEPS = [
   { srcLine: 5,  log: [['action', 'char *a = malloc(16) — chunk A is allocated. The top chunk (wilderness) sits right after A.']] },
   { srcLine: 6,  log: [['info', 'We have an overflow from chunk A. We can write past A\'s 16 bytes of data and into the top chunk\'s header (prev_size + size fields).']] },
   { done: true, log: [['info', 'Overflow into the top chunk header. Write 16 bytes of padding (for A\'s data), then 4 bytes of 00 (prev_size), then 4 bytes of FF (size = 0xFFFFFFFF). This makes the allocator think the top chunk is enormous.']] },
+];
+
+// House of Spirit guided steps
+const HOS_STEPS = [
+  { srcLine: 5,  log: [['action', 'char stack_buf[64] — a 64-byte buffer on the stack. We will build a fake chunk here.']] },
+  { srcLine: 6,  log: [['info', 'A real chunk has an 8-byte header: 4 bytes prev_size + 4 bytes size. The size field has PREV_INUSE in bit 0.']] },
+  { srcLine: 7,  log: [['info', 'For a 16-byte data chunk, the total size is 24 (0x18). With PREV_INUSE set: 0x18 | 1 = 0x19.']] },
+  { srcLine: 10, log: [['info', 'glibc checks the NEXT chunk\'s header too (to verify size). So we need a valid header at offset +24 (right after our fake chunk\'s data).']] },
+  { done: true, log: [['info', 'Now write the fake headers! You need 32 bytes total: [prev_size: 00 00 00 00] [size: 19 00 00 00] [16 bytes data: anything] [next prev_size: 00 00 00 00] [next size: 19 00 00 00]']] },
+];
+
+// House of Orange guided steps
+const HOO_STEPS = [
+  { srcLine: 5,  log: [['action', 'char *a = malloc(16) — chunk A is allocated right before the top chunk.']] },
+  { srcLine: 6,  log: [['info', 'There is NO free() call anywhere in this program. But we have an overflow from A into the top chunk header.']] },
+  { srcLine: 7,  log: [['info', 'The trick: if we shrink the top chunk\'s size and then request a malloc BIGGER than the new top, the allocator calls sysmalloc(). sysmalloc extends the heap and frees the old top chunk into the unsorted bin!']] },
+  { srcLine: 8,  log: [['info', 'The new top size must be valid: it must have PREV_INUSE set (bit 0 = 1), and the end of the top chunk should be page-aligned. We\'ll use 0x81 (128 bytes | PREV_INUSE).']] },
+  { done: true, log: [['info', 'Overflow into the top chunk header: 16 bytes padding + 4 bytes prev_size (00) + 4 bytes new size. Use 0x81 (81 00 00 00) to shrink the top to 128 bytes.']] },
+];
+
+// House of Einherjar guided steps
+const HOE_STEPS = [
+  { srcLine: 5,  log: [['action', 'char *a = malloc(16) — chunk A (24 bytes total) is allocated.']] },
+  { srcLine: 6,  log: [['action', 'char *b = malloc(16) — chunk B (24 bytes total) is right after A.']] },
+  { srcLine: 7,  log: [['action', 'char *c = malloc(16) — chunk C (24 bytes total) is right after B.']] },
+  { srcLine: 8,  log: [['action', 'char *guard = malloc(16) — guard chunk prevents consolidation with top.']] },
+  { srcLine: 9,  log: [['info', 'We have an off-by-one overflow from A. Writing just ONE null byte (0x00) past A\'s data overwrites the low byte of B\'s size field.']] },
+  { srcLine: 10, log: [['info', 'B\'s size is 0x19 (24 | PREV_INUSE). A null byte in the low byte changes it to 0x18 — clearing PREV_INUSE! Now the allocator thinks the chunk BEFORE B is free.']] },
+  { srcLine: 12, log: [['info', 'When PREV_INUSE is clear, the allocator reads B\'s prev_size to find where the "free previous chunk" starts. By setting prev_size = 0x18 (the distance from A\'s start to B\'s start), backward consolidation will merge back to A.']] },
+  { done: true, log: [['info', 'Execute the off-by-one null byte overflow, then free(C) will trigger backward consolidation. The merged chunk will overlap with the original chunks!']] },
+];
+
+// House of Lore guided steps
+const HOL_STEPS = [
+  { srcLine: 6,  log: [['action', 'char *a = malloc(80) — chunk A is allocated (88 bytes with header). Large enough for smallbin.']] },
+  { srcLine: 7,  log: [['action', 'char *guard = malloc(16) — guard chunk prevents top consolidation.']] },
+  { srcLine: 8,  log: [['action', 'free(a) — chunk A is too big for tcache/fastbin, goes to the unsorted bin.']], doFree: 'A' },
+  { srcLine: 9,  log: [['action', 'malloc(120) — requesting a different size triggers sorting. A gets moved from unsorted bin to the appropriate smallbin.']], doMallocSort: true },
+  { srcLine: 10, log: [['info', 'A is now in the smallbin. The smallbin is a doubly-linked list: each chunk has fd (forward) and bk (backward) pointers.']] },
+  { srcLine: 11, log: [['info', 'When malloc removes a chunk from smallbin, it checks: victim->bk->fd == victim. This prevents simple pointer corruption.']] },
+  { srcLine: 12, log: [['info', 'To bypass: we need a fake chunk whose fd points back to the real chunk (A). Then we set A\'s bk to point to the fake chunk. Both directions of the linked list check out!']] },
+  { done: true, log: [['info', 'Corrupt A\'s bk pointer to point to a fake chunk at (funcPtrAddr - 8). The "-8" is because data starts at offset +8 from the chunk address, and we want the second malloc to return funcPtrAddr as data.']] },
 ];
 
 function heapUafSubmit() {
@@ -4647,6 +5199,525 @@ function heapUnsortedBinSubmit() {
     showSuccess(ex.winTitle, ex.winMsg);
   } else {
     log('error', 'The write went to <span class="log-addr">' + hex8(writeTarget) + '</span> — that\'s not the function pointer table (<span class="log-addr">' + hex8(ex.funcPtrAddr) + '</span>). Set bk to funcPtrAddr - 8 = <span class="log-addr">' + hex8((ex.funcPtrAddr - 8) >>> 0) + '</span> in little-endian!');
+  }
+
+  renderViz();
+  renderLog();
+}
+
+// ── House of Spirit submit handlers ──
+
+function heapSpiritFakeHeadersSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter the fake chunk headers as hex bytes.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+
+  if (bytes.length < 32) {
+    log('error', 'Need at least 32 bytes: 4 (prev_size) + 4 (size) + 16 (data) + 4 (next prev_size) + 4 (next size). You gave ' + bytes.length + '.');
+    renderLog();
+    return;
+  }
+
+  // Write the fake headers into the "stack buffer" region
+  const stackAddr = state.spiritStackAddr;
+  heap.write(stackAddr, bytes);
+
+  // Check the fake chunk header
+  const fakePrevSize = heap._readLE(stackAddr, 4);
+  const fakeSize = heap._readLE(stackAddr + 4, 4);
+  const nextPrevSize = heap._readLE(stackAddr + 24, 4);
+  const nextSize = heap._readLE(stackAddr + 28, 4);
+
+  highlightExecLine(8);
+  log('action', 'Wrote ' + bytes.length + ' bytes into stack_buf.');
+  log('action', 'Fake chunk header: prev_size=<span class="log-addr">' + hex8(fakePrevSize) + '</span>, size=<span class="log-addr">' + hex8(fakeSize) + '</span>');
+  log('action', 'Next chunk header: prev_size=<span class="log-addr">' + hex8(nextPrevSize) + '</span>, size=<span class="log-addr">' + hex8(nextSize) + '</span>');
+
+  // Check validity: size should be 0x19 (24 | PREV_INUSE)
+  if (fakeSize !== 0x19) {
+    log('error', 'Fake chunk size should be 0x19 (24 bytes | PREV_INUSE flag). Got ' + hex8(fakeSize) + '. Use: 19 00 00 00');
+    renderViz();
+    renderLog();
+    return;
+  }
+
+  // Check next chunk header
+  if ((nextSize & 1) === 0) {
+    log('warn', 'Next chunk size should have PREV_INUSE set (odd number). Got ' + hex8(nextSize) + '.');
+  }
+
+  if (nextSize < 0x10) {
+    log('error', 'Next chunk size looks too small (' + hex8(nextSize) + '). Use at least 0x19.');
+    renderViz();
+    renderLog();
+    return;
+  }
+
+  // Register the fake chunk in the heap sim
+  state.spiritFakeChunkAddr = stackAddr;
+  heap.chunks.set(stackAddr, { size: 24, allocated: true, dataStart: stackAddr + heap.HEADER_SIZE });
+
+  log('success', 'Fake chunk headers look valid! The allocator will accept this as a real chunk.');
+  log('info', 'Fake chunk data starts at offset ' + (stackAddr + 8) + ' (display addr: <span class="log-addr">' + hex8(heap.baseAddr + stackAddr + 8) + '</span>).');
+  log('info', 'Now free the fake chunk to put it in the recycling list (tcache).');
+
+  state.heapPhase = 'free-fake';
+  renderInput(ex);
+  renderViz();
+  renderLog();
+}
+
+function heapSpiritFreeSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter the fake chunk data address.'); renderLog(); return; }
+
+  const input = ta.value.trim();
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+
+  let inputAddr;
+  if (input.startsWith('0x') || input.startsWith('0X')) {
+    inputAddr = parseInt(input.slice(2), 16);
+  } else {
+    inputAddr = parseInt(input, 16);
+  }
+
+  if (isNaN(inputAddr)) {
+    log('error', 'Invalid hex address. Enter something like 0x08050008');
+    renderLog();
+    return;
+  }
+
+  const expectedDataAddr = heap.baseAddr + state.spiritFakeChunkAddr + heap.HEADER_SIZE;
+
+  if (inputAddr !== expectedDataAddr) {
+    log('error', 'That\'s not the fake chunk\'s data address. The fake chunk starts at <span class="log-addr">' + hex8(heap.baseAddr + state.spiritFakeChunkAddr) + '</span>, so data is at <span class="log-addr">' + hex8(expectedDataAddr) + '</span>.');
+    renderLog();
+    return;
+  }
+
+  // Free the fake chunk
+  heap.free(state.spiritFakeChunkAddr);
+  highlightExecLine(14);
+  log('action', 'free(<span class="log-addr">' + hex8(inputAddr) + '</span>) — the allocator accepted the fake chunk! It\'s now in tcache.');
+  log('info', 'The next malloc(16) will return THIS address — your fake chunk on the stack!');
+
+  // Now malloc to get it back
+  const result = heap.malloc(16);
+  highlightExecLine(15);
+  if (result) {
+    log('action', 'malloc(16) returned <span class="log-addr">' + hex8(heap.baseAddr + result.dataAddr) + '</span> — that\'s the fake chunk\'s data area!');
+    log('info', 'Write win()\'s address here to overwrite the function pointer.');
+    state.heapPhase = 'final-write';
+    renderInput(ex);
+  }
+
+  renderViz();
+  renderLog();
+}
+
+function heapSpiritFinalSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter win()\'s address in little-endian.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length < 4) { log('info', 'Need at least 4 bytes (an address).'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+  const writtenAddr = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+  const writtenAddrU = writtenAddr >>> 0;
+
+  log('action', 'Writing <span class="log-addr">' + hex8(writtenAddrU) + '</span> into the fake chunk (overlaps function pointer table)...');
+  highlightExecLine(17);
+
+  if (writtenAddrU === state.symbols.win) {
+    heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.win };
+    log('success', 'handler() now points to win()! Executing...');
+    highlightExecLine(18);
+    state.completed.add(state.currentEx);
+    saveProgress();
+    renderNav();
+    showSuccess(ex.winTitle, ex.winMsg);
+  } else {
+    const sym = Object.entries(state.symbols).find(([, a]) => a === writtenAddrU);
+    if (sym) {
+      log('error', 'Wrote ' + sym[0] + '()\'s address — not win(). Write win()\'s address: ' + hex8(state.symbols.win) + ' in little-endian.');
+    } else {
+      log('error', 'Wrote ' + hex8(writtenAddrU) + ' — that\'s not win() (' + hex8(state.symbols.win) + '). Enter win()\'s address in little-endian!');
+    }
+  }
+
+  renderViz();
+  renderLog();
+}
+
+// ── House of Orange submit handlers ──
+
+function heapOrangeCorruptSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter a hex payload first.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+  const aAddr = state.heapNames['A'];
+  if (aAddr === undefined) { log('error', 'Chunk A not found.'); renderLog(); return; }
+
+  const aDataAddr = aAddr + heap.HEADER_SIZE;
+  heap.write(aDataAddr, bytes);
+
+  const topChunkAddr = heap.topAddr;
+  const topSizeOffset = topChunkAddr + 4;
+  const newTopSize = heap._readLE(topSizeOffset, 4);
+
+  highlightExecLine(8);
+
+  if (bytes.length < 24) {
+    log('action', 'Wrote ' + bytes.length + ' bytes. Need at least 24: 16 (A\'s data) + 4 (prev_size) + 4 (top size).');
+    renderViz();
+    renderLog();
+    return;
+  }
+
+  log('action', 'Overflow! Wrote ' + bytes.length + ' bytes starting at A\'s data, spilling into the top chunk header.');
+  log('action', 'Top chunk size field is now: <span class="log-addr">' + hex8(newTopSize) + '</span>');
+
+  // Check if the top was corrupted to a small valid value like 0x81
+  const cleanSize = newTopSize & ~7;
+  if (cleanSize > 0 && cleanSize <= 256 && (newTopSize & 1) === 1) {
+    // Valid small top size with PREV_INUSE
+    const oldTopAddr = heap.topAddr;
+    const oldTopSize = cleanSize;
+    heap.topSize = cleanSize;
+
+    log('success', 'Top chunk size corrupted to <span class="log-addr">' + hex8(newTopSize) + '</span>. The top now thinks it\'s only ' + cleanSize + ' bytes!');
+    log('info', 'Now a malloc larger than ' + cleanSize + ' bytes will trigger sysmalloc. The old top chunk will be freed into the unsorted bin!');
+
+    // Simulate: large malloc triggers sysmalloc
+    log('action', 'malloc(256) — requesting more than the corrupted top size...');
+    highlightExecLine(10);
+
+    // sysmalloc: "free" the old top into unsorted bin
+    const oldTopChunk = { size: oldTopSize, allocated: false, dataStart: oldTopAddr + heap.HEADER_SIZE };
+    heap.chunks.set(oldTopAddr, oldTopChunk);
+    heap.unsorted.push(oldTopAddr);
+    // Write fd/bk for the unsorted chunk
+    const dataStart = oldTopAddr + heap.HEADER_SIZE;
+    heap._writeLE(dataStart, 0, 4); // fd
+    heap._writeLE(dataStart + 4, 0, 4); // bk
+    heap.written[dataStart] = 1; heap.written[dataStart+1] = 1; heap.written[dataStart+2] = 1; heap.written[dataStart+3] = 1;
+    heap.written[dataStart+4] = 1; heap.written[dataStart+5] = 1; heap.written[dataStart+6] = 1; heap.written[dataStart+7] = 1;
+
+    // Extend heap (simulate sysmalloc extending)
+    heap.topAddr = oldTopAddr + oldTopSize;
+    heap.topSize = heap.memorySize - heap.topAddr;
+
+    state.heapNames['OldTop'] = oldTopAddr;
+
+    log('success', 'sysmalloc extended the heap and FREED the old top chunk into the unsorted bin!');
+    log('info', 'Old top chunk is now at offset ' + oldTopAddr + ' in the unsorted bin. It has fd and bk pointers.');
+    log('info', 'Now corrupt the old top\'s bk pointer (UAF) to target the function pointer table. Set bk = funcPtrAddr - 8 = <span class="log-addr">' + hex8(ex.funcPtrAddr - 8) + '</span>.');
+
+    state.heapPhase = 'bk-write';
+    renderInput(ex);
+  } else {
+    log('error', 'Top chunk size ' + hex8(newTopSize) + ' is not valid. It needs PREV_INUSE set (bit 0 = 1) and should be a small value. Try 0x81 (81 00 00 00).');
+  }
+
+  renderViz();
+  renderLog();
+}
+
+function heapOrangeBkSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter the bk value in little-endian.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length < 4) { log('info', 'Need at least 4 bytes.'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+  const oldTopAddr = state.heapNames['OldTop'];
+  if (oldTopAddr === undefined) { log('error', 'Step through first.'); renderLog(); return; }
+
+  const bkAddr = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+  const bkAddrU = bkAddr >>> 0;
+  const dataStart = oldTopAddr + heap.HEADER_SIZE;
+
+  // Write the bk pointer
+  heap._writeLE(dataStart + 4, bkAddrU, 4);
+  heap.written[dataStart+4] = 1; heap.written[dataStart+5] = 1; heap.written[dataStart+6] = 1; heap.written[dataStart+7] = 1;
+
+  log('action', 'Corrupted old top\'s bk to <span class="log-addr">' + hex8(bkAddrU) + '</span>');
+  highlightExecLine(15);
+
+  // Now simulate malloc from unsorted bin: the unlink writes main_arena to bk->fd
+  // bk->fd is at bk + 8 (data offset) + 0 (fd is first field)
+  // But for our write-primitive, the target is bk + 8
+  const writeTarget = (bkAddrU + 8) >>> 0;
+  const expectedBk = (ex.funcPtrAddr - 8) >>> 0;
+
+  log('action', 'malloc(96) — removing old top from unsorted bin...');
+  log('action', 'Unlink writes main_arena (<span class="log-addr">' + hex8(heap.mainArena) + '</span>) to bk->fd (addr <span class="log-addr">' + hex8(writeTarget) + '</span>)');
+
+  // Remove from unsorted
+  const idx = heap.unsorted.indexOf(oldTopAddr);
+  if (idx >= 0) heap.unsorted.splice(idx, 1);
+
+  if (writeTarget === ex.funcPtrAddr) {
+    heap.funcPtrs.handler = { original: state.symbols.normal, current: heap.mainArena };
+    log('success', 'main_arena value written to the function pointer table! handler() is now non-zero.');
+    log('success', 'Calling handler() — it jumps to main_arena, which in our simulation triggers win!');
+    highlightExecLine(17);
+    state.completed.add(state.currentEx);
+    saveProgress();
+    renderNav();
+    showSuccess(ex.winTitle, ex.winMsg);
+  } else {
+    log('error', 'The write landed at <span class="log-addr">' + hex8(writeTarget) + '</span>, not the function pointer table at <span class="log-addr">' + hex8(ex.funcPtrAddr) + '</span>.');
+    log('info', 'Set bk = funcPtrAddr - 8 = <span class="log-addr">' + hex8(expectedBk) + '</span> (because the write goes to bk + 8).');
+  }
+
+  renderViz();
+  renderLog();
+}
+
+// ── House of Einherjar submit handlers ──
+
+function heapEinherjarNullByteSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Type "yes" to execute the off-by-one.'); renderLog(); return; }
+
+  const input = ta.value.trim().toLowerCase();
+  if (input !== 'yes') {
+    log('info', 'Type "yes" to confirm the off-by-one null byte overflow.');
+    renderLog();
+    return;
+  }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+  const aAddr = state.heapNames['A'];
+  const bAddr = state.heapNames['B'];
+  const cAddr = state.heapNames['C'];
+
+  if (aAddr === undefined || bAddr === undefined || cAddr === undefined) {
+    log('error', 'Chunks not set up.'); renderLog(); return;
+  }
+
+  // Off-by-one: write null byte into B's size field low byte
+  // A's data ends at aAddr + HEADER_SIZE + 16 = bAddr
+  // B's header is at bAddr: prev_size(4) + size(4)
+  // The size field is at bAddr + 4. Its low byte is at bAddr + 4.
+  // Originally B's size = 0x19. Null byte in the size field's low byte → 0x18
+  const bSizeOffset = bAddr + 4;
+  const origSize = heap._readLE(bSizeOffset, 4);
+  // Clear the low byte (set to 0x00): clears PREV_INUSE
+  const newSize = origSize & 0xFFFFFF00;
+  heap._writeLE(bSizeOffset, newSize, 4);
+  heap.written[bSizeOffset] = 1;
+
+  log('action', 'Off-by-one! Wrote 0x00 past A\'s data into B\'s size field.');
+  log('action', 'B\'s size changed from <span class="log-addr">' + hex8(origSize) + '</span> to <span class="log-addr">' + hex8(newSize) + '</span> — PREV_INUSE is now CLEAR!');
+  highlightExecLine(10);
+
+  // Set B's prev_size to the distance from A's start to B
+  const prevSizeVal = bAddr - aAddr; // = 0x18 (24 bytes)
+  heap._writeLE(bAddr, prevSizeVal, 4);
+  heap.written[bAddr] = 1; heap.written[bAddr+1] = 1; heap.written[bAddr+2] = 1; heap.written[bAddr+3] = 1;
+
+  log('action', 'Set B\'s prev_size to <span class="log-addr">' + hex8(prevSizeVal) + '</span> (distance from A\'s start to B).');
+  highlightExecLine(13);
+
+  // Free C — this triggers backward consolidation
+  // The allocator sees C's prev_in_use is... actually we need to clear C's prev_in_use too
+  // In our simplified model: free(C) looks at C's prev chunk (B).
+  // B's PREV_INUSE is clear → the allocator reads B's prev_size and consolidates backward.
+  // Actually, let's simplify: when C is freed, it checks the NEXT chunk after C for prev_in_use.
+  // For backward consolidation: it checks if B (the chunk before C) is free by looking at C's PREV_INUSE flag.
+  // Let's clear C's PREV_INUSE flag too to trigger backward consolidation through B.
+  const cSizeOffset = cAddr + 4;
+  const origCSize = heap._readLE(cSizeOffset, 4);
+  heap._writeLE(cSizeOffset, origCSize & ~1, 4);
+
+  // Set C's prev_size to span back through B to A
+  const cPrevSize = cAddr - aAddr; // distance from A to C
+  heap._writeLE(cAddr, cPrevSize, 4);
+  heap.written[cAddr] = 1; heap.written[cAddr+1] = 1; heap.written[cAddr+2] = 1; heap.written[cAddr+3] = 1;
+
+  log('action', 'free(c) — the allocator checks C\'s PREV_INUSE flag... it\'s CLEAR!');
+  log('action', 'Backward consolidation: reads C\'s prev_size (<span class="log-addr">' + hex8(cPrevSize) + '</span>) and merges back to offset ' + aAddr + '.');
+  highlightExecLine(14);
+
+  // Create a large merged chunk starting at A's address
+  const mergedSize = cAddr + 24 - aAddr; // from A's start to end of C
+  heap.chunks.set(aAddr, { size: mergedSize, allocated: false, dataStart: aAddr + heap.HEADER_SIZE });
+  // Remove B and C from chunks map
+  heap.chunks.delete(bAddr);
+  heap.chunks.delete(cAddr);
+  // Put the merged chunk in unsorted bin
+  heap.unsorted.push(aAddr);
+  heap._writeChunkHeader(aAddr, mergedSize, false);
+
+  log('success', 'Backward consolidation created a merged chunk of ' + mergedSize + ' bytes starting at offset ' + aAddr + '!');
+  log('info', 'This merged chunk overlaps where A, B, and C used to be.');
+
+  // malloc(64) from this merged chunk gives overlapping allocation
+  // Simulate: the allocator carves from the merged chunk
+  const overlapAlloc = heap.malloc(64);
+  if (overlapAlloc) {
+    state.heapNames['D'] = overlapAlloc.addr;
+    log('action', 'malloc(64) returned a chunk at offset ' + overlapAlloc.addr + ' — this overlaps the original chunks!');
+    highlightExecLine(16);
+  }
+
+  // Set up function pointer in the overlap zone
+  heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
+
+  log('info', 'Write win()\'s address to overwrite the function pointer.');
+  state.heapPhase = 'final-write';
+  renderInput(ex);
+  renderViz();
+  renderLog();
+}
+
+function heapEinherjarFinalSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter win()\'s address in little-endian.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length < 4) { log('info', 'Need at least 4 bytes (an address).'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+  const writtenAddr = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+  const writtenAddrU = writtenAddr >>> 0;
+
+  log('action', 'Writing <span class="log-addr">' + hex8(writtenAddrU) + '</span> into the overlapping chunk...');
+  highlightExecLine(18);
+
+  if (writtenAddrU === state.symbols.win) {
+    heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.win };
+    log('success', 'handler() now points to win()! Executing...');
+    highlightExecLine(19);
+    state.completed.add(state.currentEx);
+    saveProgress();
+    renderNav();
+    showSuccess(ex.winTitle, ex.winMsg);
+  } else {
+    const sym = Object.entries(state.symbols).find(([, a]) => a === writtenAddrU);
+    if (sym) {
+      log('error', 'Wrote ' + sym[0] + '()\'s address — not win(). Write win()\'s address: ' + hex8(state.symbols.win) + ' in little-endian.');
+    } else {
+      log('error', 'Wrote ' + hex8(writtenAddrU) + ' — that\'s not win() (' + hex8(state.symbols.win) + '). Enter win()\'s address in little-endian!');
+    }
+  }
+
+  renderViz();
+  renderLog();
+}
+
+// ── House of Lore submit handlers ──
+
+function heapLoreCorruptSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter the bk value in little-endian.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length < 4) { log('info', 'Need at least 4 bytes.'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+  const aAddr = state.heapNames['A'];
+  if (aAddr === undefined) { log('error', 'Step through first.'); renderLog(); return; }
+
+  const bkAddr = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+  const bkAddrU = bkAddr >>> 0;
+  const expectedBk = (ex.funcPtrAddr - 8) >>> 0;
+
+  // Write bk into A's data+4 (bk is the second pointer)
+  const aDataStart = aAddr + heap.HEADER_SIZE;
+  heap._writeLE(aDataStart + 4, bkAddrU, 4);
+  heap.written[aDataStart+4] = 1; heap.written[aDataStart+5] = 1; heap.written[aDataStart+6] = 1; heap.written[aDataStart+7] = 1;
+
+  log('action', 'Corrupted A\'s bk to <span class="log-addr">' + hex8(bkAddrU) + '</span>');
+  highlightExecLine(13);
+
+  // Check if bk points to funcPtrAddr - 8
+  if (bkAddrU !== expectedBk) {
+    log('error', 'bk should be funcPtrAddr - 8 = <span class="log-addr">' + hex8(expectedBk) + '</span>. The fake chunk\'s data (where fd lives) starts at bk + 8 = funcPtrAddr.');
+    log('info', 'We need the fake chunk\'s fd to point back to A to pass the check: victim->bk->fd == victim. Set bk = <span class="log-addr">' + hex8(expectedBk) + '</span>.');
+    renderViz();
+    renderLog();
+    return;
+  }
+
+  // Simulate: the fake chunk at (funcPtrAddr - 8) has fd pointing back to A's data
+  // In a real exploit, you'd write this. We simulate it automatically for the teaching exercise.
+  log('action', 'Setting up fake chunk at <span class="log-addr">' + hex8(bkAddrU) + '</span> with fd = A\'s data address (to pass bk->fd == victim check)...');
+  log('info', 'The fake chunk\'s fd points back to A: check passes! victim->bk->fd == victim ✓');
+  highlightExecLine(12);
+
+  // First malloc returns A (the real chunk)
+  log('action', 'malloc(80) #1 — returns chunk A from the smallbin. The allocator follows A\'s bk to the fake chunk as the new head.');
+  highlightExecLine(14);
+
+  // Second malloc returns the fake chunk
+  log('action', 'malloc(80) #2 — returns the fake chunk at <span class="log-addr">' + hex8(bkAddrU + 8) + '</span>... that\'s the function pointer table!');
+  highlightExecLine(15);
+
+  // Remove from smallbin
+  if (heap.smallbins) {
+    for (const sz in heap.smallbins) {
+      const arr = heap.smallbins[sz];
+      const idx = arr.indexOf(aAddr);
+      if (idx >= 0) arr.splice(idx, 1);
+    }
+  }
+
+  log('success', 'The allocator returned the function pointer table address!');
+  log('info', 'Write win()\'s address to complete the exploit.');
+
+  state.heapPhase = 'final-write';
+  renderInput(ex);
+  renderViz();
+  renderLog();
+}
+
+function heapLoreFinalSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter win()\'s address in little-endian.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length < 4) { log('info', 'Need at least 4 bytes (an address).'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+  const writtenAddr = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+  const writtenAddrU = writtenAddr >>> 0;
+
+  log('action', 'Writing <span class="log-addr">' + hex8(writtenAddrU) + '</span> to the function pointer table...');
+  highlightExecLine(16);
+
+  if (writtenAddrU === state.symbols.win) {
+    heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.win };
+    log('success', 'handler() now points to win()! Executing...');
+    highlightExecLine(17);
+    state.completed.add(state.currentEx);
+    saveProgress();
+    renderNav();
+    showSuccess(ex.winTitle, ex.winMsg);
+  } else {
+    const sym = Object.entries(state.symbols).find(([, a]) => a === writtenAddrU);
+    if (sym) {
+      log('error', 'Wrote ' + sym[0] + '()\'s address — not win(). Write win()\'s address: ' + hex8(state.symbols.win) + ' in little-endian.');
+    } else {
+      log('error', 'Wrote ' + hex8(writtenAddrU) + ' — that\'s not win() (' + hex8(state.symbols.win) + '). Enter win()\'s address in little-endian!');
+    }
   }
 
   renderViz();
