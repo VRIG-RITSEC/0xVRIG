@@ -38,6 +38,7 @@ const ex05Canary: Exercise = {
   },
   winTitle: 'FLAG{canary_bypassed}',
   winMsg: 'You read the leaked secret value and carefully placed it in your payload so the tripwire stayed intact — while still overwriting the go-back address. Sneaky! This is how real attackers bypass stack canaries.',
+  realWorld: 'Canary bypasses are common in format string attacks. CVE-2015-7547: A stack buffer overflow in glibc getaddrinfo() was exploitable despite canaries via a carefully crafted DNS response.',
 };
 
 export default ex05Canary;

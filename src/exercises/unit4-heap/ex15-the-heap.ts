@@ -36,6 +36,7 @@ const ex15TheHeap: Exercise = {
   check() { return false; },
   winTitle: 'Heap Basics Complete',
   winMsg: 'You have observed how the heap allocator works.',
+  realWorld: 'CVE-2021-22555: A heap out-of-bounds write in Linux Netfilter was used for local privilege escalation from unprivileged user to root.',
 };
 
 export default ex15TheHeap;

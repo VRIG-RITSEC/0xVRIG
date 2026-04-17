@@ -54,6 +54,7 @@ const ex12RopBasics: Exercise = {
   },
   winTitle: 'FLAG{rop_chain}',
   winMsg: 'You chained gadgets together like Lego blocks! Each "pop; ret" loaded a value into a register, then "mov [ebx], eax; ret" wrote it to memory. This is Return-Oriented Programming (ROP) \u2014 the main technique for bypassing NX in real exploits.',
+  realWorld: 'CVE-2014-0322: An IE zero-day used ROP chains to bypass DEP and ASLR, exploited in-the-wild by APT groups before Microsoft patched it.',
 };
 
 export default ex12RopBasics;

@@ -28,6 +28,15 @@ export default function StackViz() {
       (sim.useCanary && offset === sim.bufSize + sim.canarySize) ||
       offset === sim.bufSize + sim.canarySize + sim.ebpSize;
 
+    const retOff = sim.bufSize + sim.canarySize + sim.ebpSize;
+    let tooltip = '';
+    if (isRegionStart) {
+      if (offset === 0) tooltip = 'Buffer -- user input lands here. Overflowing past its boundary is the core of stack smashing.';
+      else if (sim.useCanary && offset === sim.bufSize) tooltip = 'Stack canary -- a random guard value checked before return. If corrupted, the program aborts via __stack_chk_fail.';
+      else if (offset === sim.bufSize + sim.canarySize) tooltip = 'Saved base pointer (EBP) -- restores the caller\'s stack frame. Overwriting it can pivot the stack.';
+      else if (offset === retOff) tooltip = 'Saved return address -- overwriting this redirects execution when the function returns.';
+    }
+
     const rowClasses = [
       'stack-row',
       `region-${region}`,
@@ -80,7 +89,7 @@ export default function StackViz() {
     }
 
     rows.push(
-      <div key={r} className={rowClasses}>
+      <div key={r} className={rowClasses} data-tooltip={tooltip || undefined}>
         <span className="stack-addr">{hex8(addr)}</span>
         <span className="stack-bytes">{bytes}</span>
         <span className="stack-ascii">{asciiStr}</span>

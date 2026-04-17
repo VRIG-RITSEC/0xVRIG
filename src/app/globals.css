@@ -196,6 +196,19 @@ main {
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 @keyframes flash { 0% { background: rgba(255,255,255,0.4); } 100% {} }
 
+/* Contextual tooltips */
+[data-tooltip] { position: relative; cursor: help; }
+[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute; left: 0; bottom: 100%;
+  background: rgba(0,0,0,0.92); color: var(--green); border: 1px solid var(--panel-border);
+  padding: 0.35rem 0.5rem; font-size: 10px; line-height: 1.4;
+  white-space: normal; width: max-content; max-width: 280px;
+  z-index: 50; pointer-events: none; border-radius: 2px;
+  font-family: var(--font);
+}
+.has-tooltip { cursor: help; border-bottom: 1px dotted var(--text-dim); }
+
 /* Toolkit accordion */
 .toolkit { margin-top: 0.75rem; border-top: 1px solid var(--panel-border); }
 .toolkit-section { border-bottom: 1px solid var(--panel-border); }

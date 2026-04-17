@@ -110,6 +110,7 @@ export interface Exercise {
   check: (sim: any, heap: any, symbols: Record<string, number>, flags: Record<string, boolean>) => boolean;
   winTitle: string;
   winMsg: string;
+  realWorld?: string;
 }
 
 export interface AsmQuizQuestion {

@@ -39,6 +39,7 @@ const ex19TcachePoison: Exercise = {
   },
   winTitle: 'FLAG{tcache_poison}',
   winMsg: 'You poisoned the tcache forward pointer. The allocator blindly followed it and gave you a chunk at YOUR chosen address. Tcache has minimal security checks \u2014 overwrite fd, get arbitrary allocation.',
+  realWorld: 'Tcache poisoning became a dominant heap exploitation technique after glibc 2.26 (2017). CVE-2020-6449: A Chrome use-after-free exploited tcache to achieve RCE.',
 };
 
 export default ex19TcachePoison;

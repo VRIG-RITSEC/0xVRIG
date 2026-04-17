@@ -86,7 +86,8 @@ export default function HeapViz() {
 
             {/* Header */}
             <div style={{ color: 'var(--text-dim)', fontSize: '10px' }}>
-              hdr: prev_size={hex8(heap._readLE(chunk.addr, 4))} size={hex8(heap._readLE(chunk.addr + 4, 4))}
+              hdr: <span data-tooltip="Size of previous chunk (only valid when previous chunk is free). Used for backward coalescing." className="has-tooltip">prev_size={hex8(heap._readLE(chunk.addr, 4))}</span>{' '}
+              <span data-tooltip="Size of this chunk including header. Low bits: P (prev in use), M (mmap'd), A (non-main arena)." className="has-tooltip">size={hex8(heap._readLE(chunk.addr + 4, 4))}</span>
             </div>
 
             {/* Data bytes */}
@@ -104,9 +105,9 @@ export default function HeapViz() {
             {/* fd pointer for freed chunks */}
             {!isAllocated && chunk.dataSize >= 4 && (
               <div style={{ color: 'var(--purple)', fontSize: '10px', marginTop: '0.1rem' }}>
-                fd = {hex8(heap._readLE(chunk.dataStart, 4))}
+                <span data-tooltip="Forward pointer -- points to the next free chunk in this bin's linked list." className="has-tooltip">fd = {hex8(heap._readLE(chunk.dataStart, 4))}</span>
                 {chunk.dataSize >= 8 && (
-                  <span> bk = {hex8(heap._readLE(chunk.dataStart + 4, 4))}</span>
+                  <span data-tooltip="Backward pointer -- points to the previous free chunk (used in unsorted/small/large bins, not fastbins)." className="has-tooltip"> bk = {hex8(heap._readLE(chunk.dataStart + 4, 4))}</span>
                 )}
               </div>
             )}

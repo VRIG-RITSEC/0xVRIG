@@ -43,6 +43,7 @@ const ex11Ret2libc: Exercise = {
   },
   winTitle: 'FLAG{ret2libc}',
   winMsg: 'You called system("/bin/sh") without writing any code on the stack! By reusing functions already in memory, you bypassed NX. This technique is called "return to libc" and it was the first major NX bypass.',
+  realWorld: 'Return-to-libc was the first practical bypass for non-executable stacks (W^X/DEP). The technique dates to Solar Designer\'s 1997 Bugtraq post and remains foundational.',
 };
 
 export default ex11Ret2libc;

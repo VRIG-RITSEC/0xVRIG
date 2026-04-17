@@ -34,6 +34,7 @@ const ex02Overflow: Exercise = {
   },
   winTitle: 'Crash! Segmentation Fault',
   winMsg: 'The program crashed because you overwrote the go-back address with garbage. The computer tried to jump to a nonsense location and exploded. Nice work — in exercise 3, you\'ll control WHERE it jumps instead of just crashing it.',
+  realWorld: 'CVE-2023-4911 (Looney Tunables): A buffer overflow in glibc ld.so GLIBC_TUNABLES parsing gave root on most Linux distros.',
 };
 
 export default ex02Overflow;

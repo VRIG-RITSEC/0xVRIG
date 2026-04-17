@@ -38,6 +38,7 @@ const ex04Aslr: Exercise = {
   },
   winTitle: 'FLAG{aslr_defeated}',
   winMsg: 'Even though the addresses were randomized, you figured out win()\'s address by reading the leaked main() address and doing simple math. This is exactly how real hackers beat ASLR — find one leaked address, calculate the rest.',
+  realWorld: 'CVE-2017-1000364 (Stack Clash): Insufficient stack guard pages allowed attackers to bypass ASLR via large allocations on Linux, FreeBSD, and Solaris.',
 };
 
 export default ex04Aslr;

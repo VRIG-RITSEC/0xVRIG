@@ -39,6 +39,7 @@ const ex08FmtWrite: Exercise = {
   },
   winTitle: 'FLAG{format_string_write}',
   winMsg: 'You used %n to write a value to the authorized variable! Format string bugs are powerful — they let you read AND write arbitrary memory, all through printf.',
+  realWorld: 'CVE-2012-0809: A format string vulnerability in sudo allowed local users to escalate to root via crafted environment strings passed to sudo_debug().',
 };
 
 export default ex08FmtWrite;

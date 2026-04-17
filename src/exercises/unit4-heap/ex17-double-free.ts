@@ -34,6 +34,7 @@ const ex17DoubleFree: Exercise = {
   },
   winTitle: 'FLAG{double_free}',
   winMsg: 'The double free created a cycle in the recycling list. You overwrote the forward pointer to point at the function pointer table. The allocator thought it was returning a valid free block, but it actually gave you control over the function pointer. Double free is a classic heap exploit primitive.',
+  realWorld: 'CVE-2017-2636: A double-free in the Linux kernel n_hdlc driver allowed local privilege escalation. Exploited by corrupting the freed object with controlled data.',
 };
 
 export default ex17DoubleFree;
