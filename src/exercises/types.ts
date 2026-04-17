@@ -101,7 +101,7 @@ export interface Exercise {
   showGadgetTable?: boolean;
   showLabels?: boolean;
   steps?: GuidedStep[];
-  check: (...args: any[]) => boolean;
+  check: (sim: any, heap: any, symbols: Record<string, number>, flags: Record<string, boolean>) => boolean;
   winTitle: string;
   winMsg: string;
 }

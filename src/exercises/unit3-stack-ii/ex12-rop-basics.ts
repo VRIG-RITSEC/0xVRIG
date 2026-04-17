@@ -1,0 +1,59 @@
+import { Exercise } from '../types';
+
+const ex12RopBasics: Exercise = {
+  id: 'stack2-12',
+  unitId: 'unit3-stack-ii',
+  title: '12: ROP Basics',
+  desc: 'Now let\'s chain multiple small code snippets ("gadgets") together! Each gadget ends with <strong>ret</strong>, which pops the next address off the stack and jumps there. Your job: use the gadgets to write a magic value (<strong>0xdeadbeef</strong>) to a special address, then jump to <strong>win()</strong>. Click gadgets in the table to add their addresses to your payload.',
+  source: {
+    c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: '// NX enabled \u2014 no shellcode allowed', cls: 'cmt' },
+      { text: '// But we found these useful "gadgets":', cls: 'cmt' },
+      { text: '// 0x08048300: pop eax; ret', cls: 'cmt' },
+      { text: '// 0x08048304: pop ebx; ret', cls: 'cmt' },
+      { text: '// 0x08048308: mov [ebx], eax; ret', cls: 'cmt' },
+      { text: '', cls: '' },
+      { text: 'int flag_check = 0; // at 0x0804a040', cls: 'highlight' },
+      { text: '', cls: '' },
+      { text: 'void win() {', cls: '' },
+      { text: '    if (flag_check == 0xdeadbeef)', cls: '' },
+      { text: '        printf("FLAG{rop_chain}\\n");', cls: '' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void vuln() {', cls: '', fn: true },
+      { text: '    char buf[16];', cls: '' },
+      { text: '    gets(buf);', cls: 'highlight vuln' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    vuln();', cls: '' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+  },
+  mode: 'input-hex',
+  vizMode: 'stack',
+  bufSize: 16,
+  showSymbols: true,
+  showBuilder: false,
+  showGadgetTable: true,
+  aslr: false,
+  nx: true,
+  rop: true,
+  gadgets: {
+    0x08048300: 'pop eax; ret',
+    0x08048304: 'pop ebx; ret',
+    0x08048308: 'mov [ebx], eax; ret',
+  },
+  flagAddr: 0x0804a040,
+  magicValue: 0xdeadbeef,
+  check(_sim, _heap, _symbols, flags) {
+    return flags.ropWin === true;
+  },
+  winTitle: 'FLAG{rop_chain}',
+  winMsg: 'You chained gadgets together like Lego blocks! Each "pop; ret" loaded a value into a register, then "mov [ebx], eax; ret" wrote it to memory. This is Return-Oriented Programming (ROP) \u2014 the main technique for bypassing NX in real exploits.',
+};
+
+export default ex12RopBasics;

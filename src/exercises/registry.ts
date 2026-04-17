@@ -1,9 +1,19 @@
 import { Exercise, Unit, Badge } from './types';
 import { unit1Exercises } from './unit1-stack';
+import { unit2Exercises } from './unit2-logic';
+import { unit3Exercises } from './unit3-stack-ii';
+import { unit4Exercises } from './unit4-heap';
+import { unit5Exercises } from './unit5-heap-ii';
+import { unit6Exercises } from './unit6-final';
 
 // All exercises from all units, flattened
 const ALL_EXERCISES: Exercise[] = [
   ...unit1Exercises,
+  ...unit2Exercises,
+  ...unit3Exercises,
+  ...unit4Exercises,
+  ...unit5Exercises,
+  ...unit6Exercises,
 ];
 
 // Exercise lookup map
@@ -13,12 +23,12 @@ for (const ex of ALL_EXERCISES) {
 }
 
 export const UNITS: Unit[] = [
-  { id: 'unit1-stack', name: 'STACK', exerciseIds: ['stack-01'] },
-  { id: 'unit2-logic', name: 'LOGIC', exerciseIds: [] },
-  { id: 'unit3-stack-ii', name: 'STACK II', exerciseIds: [] },
-  { id: 'unit4-heap', name: 'HEAP', exerciseIds: [] },
-  { id: 'unit5-heap-ii', name: 'HEAP II', exerciseIds: [] },
-  { id: 'unit6-final', name: 'FINAL', exerciseIds: [] },
+  { id: 'unit1-stack', name: 'STACK', exerciseIds: ['stack-01', 'stack-02', 'stack-03', 'stack-04', 'stack-05'] },
+  { id: 'unit2-logic', name: 'LOGIC', exerciseIds: ['logic-06', 'logic-07', 'logic-08', 'logic-09', 'logic-10'] },
+  { id: 'unit3-stack-ii', name: 'STACK II', exerciseIds: ['stack2-11', 'stack2-12', 'stack2-13', 'stack2-14'] },
+  { id: 'unit4-heap', name: 'HEAP', exerciseIds: ['heap-15', 'heap-16', 'heap-17', 'heap-18'] },
+  { id: 'unit5-heap-ii', name: 'HEAP II', exerciseIds: ['heap2-19', 'heap2-20', 'heap2-21', 'heap2-22', 'heap2-23', 'heap2-24', 'heap2-25', 'heap2-26'] },
+  { id: 'unit6-final', name: 'FINAL', exerciseIds: ['final-27', 'final-28'] },
   { id: 'unit7-x64', name: 'x86-64', exerciseIds: [] },
   { id: 'unit8-win-stack', name: 'WIN STACK', exerciseIds: [] },
   { id: 'unit9-win-heap', name: 'WIN HEAP', exerciseIds: [] },
@@ -71,6 +81,12 @@ export const BADGES: Badge[] = [
       const unit = UNITS.find(u => u.id === 'unit5-heap-ii');
       return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
     },
+  },
+  {
+    id: 'full-chain',
+    name: 'Full Chain',
+    icon: '\u{1F517}',
+    condition: (completed) => completed.has('final-27'),
   },
   {
     id: 'certified-hacker',

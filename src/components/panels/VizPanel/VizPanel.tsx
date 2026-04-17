@@ -2,6 +2,7 @@
 
 import { useExerciseContext } from '@/state/ExerciseContext';
 import StackViz from './StackViz';
+import HeapViz from './HeapViz';
 
 export default function VizPanel() {
   const { currentExercise } = useExerciseContext();
@@ -9,12 +10,14 @@ export default function VizPanel() {
 
   let content: React.ReactNode;
   if (vizMode === 'heap') {
-    content = <div id="heap-viz" style={{ color: 'var(--text-dim)' }}>Heap visualization coming soon.</div>;
+    content = <HeapViz />;
   } else if (vizMode === 'both') {
     content = (
       <>
         <StackViz />
-        <div id="heap-viz" style={{ color: 'var(--text-dim)', marginTop: '1rem' }}>Heap visualization coming soon.</div>
+        <div style={{ marginTop: '1rem' }}>
+          <HeapViz />
+        </div>
       </>
     );
   } else {

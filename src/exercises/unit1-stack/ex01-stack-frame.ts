@@ -54,7 +54,7 @@ const ex01StackFrame: Exercise = {
     { region: 'buffer', log: ['action', 'Make room for buf[] — 16 bytes of space for our input'] },
     { region: 'all', log: ['info', 'Done! The stack now has: our buffer (green), the saved bookmark (blue), and the go-back address (orange). The go-back address is the key — it controls where the program goes next.'] },
   ],
-  check() { return false; },
+  check() { return false; },  // eslint-disable-line @typescript-eslint/no-unused-vars
   winTitle: 'Stack Frame Complete',
   winMsg: 'You have observed how a stack frame is constructed.',
 };

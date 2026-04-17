@@ -1,0 +1,61 @@
+import { Exercise } from '../types';
+
+const ex13StackPivot: Exercise = {
+  id: 'stack2-13',
+  unitId: 'unit3-stack-ii',
+  title: '13: Stack Pivot',
+  desc: 'The overflow is too small for your full ROP chain \u2014 you can only overwrite the go-back address and a couple words. But your buffer is at a <strong>known address</strong>! Write the ROP chain <em>inside</em> the buffer, then use <strong>xchg eax, esp; ret</strong> to move the stack pointer to your buffer. The CPU will start executing your chain from there.',
+  source: {
+    c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: '// Gadgets:', cls: 'cmt' },
+      { text: '// 0x08048300: pop eax; ret', cls: 'cmt' },
+      { text: '// 0x08048304: pop ebx; ret', cls: 'cmt' },
+      { text: '// 0x08048308: mov [ebx], eax; ret', cls: 'cmt' },
+      { text: '// 0x0804830c: xchg eax, esp; ret', cls: 'cmt' },
+      { text: '', cls: '' },
+      { text: 'int flag_check = 0; // at 0x0804a040', cls: 'highlight' },
+      { text: '', cls: '' },
+      { text: 'void win() {', cls: '' },
+      { text: '    if (flag_check == 0xdeadbeef)', cls: '' },
+      { text: '        printf("FLAG{stack_pivot}\\n");', cls: '' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void vuln() {', cls: '', fn: true },
+      { text: '    char buf[16];', cls: '' },
+      { text: '    gets(buf);', cls: 'highlight vuln' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    vuln();', cls: '' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+  },
+  mode: 'input-hex',
+  vizMode: 'stack',
+  bufSize: 16,
+  showSymbols: true,
+  showBuilder: false,
+  showGadgetTable: true,
+  aslr: false,
+  nx: true,
+  rop: true,
+  pivot: true,
+  gadgets: {
+    0x08048300: 'pop eax; ret',
+    0x08048304: 'pop ebx; ret',
+    0x08048308: 'mov [ebx], eax; ret',
+    0x0804830c: 'xchg eax, esp; ret',
+  },
+  flagAddr: 0x0804a040,
+  magicValue: 0xdeadbeef,
+  check(_sim, _heap, _symbols, flags) {
+    return flags.ropWin === true;
+  },
+  winTitle: 'FLAG{stack_pivot}',
+  winMsg: 'You moved the stack pointer into your buffer! By "pivoting" ESP to controlled data, you turned a tiny overflow into a full ROP chain. Stack pivoting is essential when overflow space is limited.',
+};
+
+export default ex13StackPivot;
