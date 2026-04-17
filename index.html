@@ -1733,6 +1733,87 @@ const EXERCISES = [
     winTitle: 'FLAG{house_of_lore}',
     winMsg: 'You bypassed the doubly-linked list check by setting up both pointers correctly \u2014 the fake chunk\'s fd pointed back to the real bin. The allocator followed bk to your fake chunk and handed it out as a valid allocation. This is House of Lore \u2014 trick the linked list validation.',
   },
+
+  // Exercise 27 (index 26): Full Chain
+  {
+    title: '27: Full Chain',
+    unit: 6,
+    desc: 'Real exploits chain multiple bugs together. This program has <strong>four</strong> vulnerabilities: an integer overflow in the allocation size, an info leak that reveals a heap address, a heap overflow that lets you write past the buffer, and a function pointer that gets called at the end. Chain all four to redirect execution to <code>win()</code>.',
+    code: [
+      { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+      { text: 'void normal() { printf("OK\\n"); }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'struct Config {', cls: '' },
+      { text: '    void (*handler)();  // function pointer', cls: '' },
+      { text: '    char name[12];', cls: '' },
+      { text: '};', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    unsigned short count;', cls: '' },
+      { text: '    printf("How many items? ");', cls: '' },
+      { text: '    scanf("%u", &count);', cls: 'highlight vuln' },
+      { text: '    // Bug 1: count is 16-bit, count*4 can wrap!', cls: 'cmt' },
+      { text: '    char *buf = malloc(count * 4);', cls: 'highlight vuln' },
+      { text: '    Config *cfg = malloc(16);', cls: '' },
+      { text: '    cfg->handler = normal;', cls: '' },
+      { text: '', cls: '' },
+      { text: '    // Bug 2: info leak', cls: 'cmt' },
+      { text: '    printf("DEBUG: cfg at %p\\n", cfg);', cls: 'highlight vuln' },
+      { text: '', cls: '' },
+      { text: '    // Bug 3: reads 256 bytes into tiny buf', cls: 'cmt' },
+      { text: '    read(0, buf, 256);', cls: 'highlight vuln' },
+      { text: '', cls: '' },
+      { text: '    cfg->handler();', cls: 'highlight' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'final-chain',
+    vizMode: 'both',
+    heapSize: 256,
+    showSymbols: true,
+    funcPtrAddr: null, // dynamic, depends on heap layout
+    check(heap) { return heap.funcPtrs.handler && heap.funcPtrs.handler.current === state.symbols.win; },
+    winTitle: 'FLAG{full_chain_master}',
+    winMsg: 'You chained four vulnerabilities together: integer overflow \u2192 small allocation, info leak \u2192 know the target address, heap overflow \u2192 corrupt the function pointer, control flow hijack \u2192 jump to win(). This is how real exploits work \u2014 no single bug is enough, but together they give you full control.',
+  },
+
+  // Exercise 28 (index 27): Blind Chain
+  {
+    title: '28: Blind Chain',
+    unit: 6,
+    desc: 'Good luck.',
+    code: [
+      { text: '// Good luck.', cls: 'cmt' },
+      { text: 'void ???() { /* 0x08048150 */ }', cls: '' },
+      { text: 'void normal() { /* ... */ }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    void *ptrs[4];', cls: '' },
+      { text: '    for (int i = 0; i < 4; i++)', cls: '' },
+      { text: '        ptrs[i] = malloc(32);', cls: '' },
+      { text: '    ptrs[0]->fn = normal;', cls: '' },
+      { text: '', cls: '' },
+      { text: '    free(ptrs[1]);', cls: '' },
+      { text: '    free(ptrs[2]);', cls: '' },
+      { text: '    // ptrs[2] is freed but still accessible', cls: 'cmt' },
+      { text: '', cls: '' },
+      { text: '    read(0, ptrs[2], 32);', cls: '' },
+      { text: '    void *x = malloc(32);', cls: '' },
+      { text: '    void *y = malloc(32);', cls: '' },
+      { text: '    read(0, y, 4);', cls: '' },
+      { text: '', cls: '' },
+      { text: '    ptrs[0]->fn();', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'final-blind',
+    vizMode: 'heap',
+    heapSize: 512,
+    showSymbols: false,
+    showLabels: false,
+    check(heap) { return heap.funcPtrs.fn && heap.funcPtrs.fn.current === state.symbols.win; },
+    winTitle: 'FLAG{you_are_ready}',
+    winMsg: 'You solved the final challenge with minimal guidance. You identified the vulnerability, figured out the memory layout, calculated the right addresses, and chained it all together. You\'re ready for real CTF challenges and vulnerability research. Welcome to the field.',
+  },
 ];
 
 const UNITS = [
@@ -1741,7 +1822,7 @@ const UNITS = [
   { id: 3, name: 'STACK II', exercises: [10, 11, 12, 13] },
   { id: 4, name: 'HEAP', exercises: [14, 15, 16, 17] },
   { id: 5, name: 'HEAP II', exercises: [18, 19, 20, 21, 22, 23, 24, 25] },
-  { id: 6, name: 'FINAL', exercises: [] },
+  { id: 6, name: 'FINAL', exercises: [26, 27] },
 ];
 
 const BADGES = {
@@ -1820,9 +1901,8 @@ function getEarnedBadges() {
       if (BADGES[unit.id]) earned.push(BADGES[unit.id]);
     }
   }
-  // Badge 27: Full Chain — all exercises through 26 (indices 0-25) complete
-  const allThrough26 = EXERCISES.slice(0, 26).every((_, i) => state.completed.has(i));
-  if (allThrough26 && EXERCISES.length >= 26 && BADGES[27]) earned.push(BADGES[27]);
+  // Badge 27: Full Chain — exercise 27 (index 26) complete
+  if (state.completed.has(26) && BADGES[27]) earned.push(BADGES[27]);
   // Badge 28: Certified Hacker — all 28 exercises complete
   const allComplete = EXERCISES.every((_, i) => state.completed.has(i));
   if (allComplete && EXERCISES.length >= 28 && BADGES[28]) earned.push(BADGES[28]);
@@ -1990,11 +2070,16 @@ function renderHeap() {
   const strip = document.createElement('div');
   strip.className = 'heap-memory-strip';
 
+  const curExForStrip = typeof state.currentEx === 'number' ? EXERCISES[state.currentEx] : null;
+  const blindMode = curExForStrip && curExForStrip.showLabels === false;
+
   chunks.forEach(chunk => {
     const chunkEl = document.createElement('div');
     chunkEl.className = 'heap-chunk';
-    if (chunk.allocated) chunkEl.classList.add('allocated');
-    else chunkEl.classList.add('freed');
+    if (!blindMode) {
+      if (chunk.allocated) chunkEl.classList.add('allocated');
+      else chunkEl.classList.add('freed');
+    }
     if (chunk.highlighted) chunkEl.classList.add('highlighted');
 
     // Header row
@@ -2005,20 +2090,32 @@ function renderHeap() {
     const rawSize = sizeFieldVal & ~7;
     const prevInUse = sizeFieldVal & 1;
 
-    const ps = document.createElement('span');
-    ps.className = 'prev-size';
-    ps.textContent = 'ps:' + prevSizeVal;
-    hdr.appendChild(ps);
+    if (blindMode) {
+      // Show raw header bytes only
+      const hdrBytes = [];
+      for (let i = 0; i < 8 && (chunk.addr + i) < heap.memorySize; i++) {
+        hdrBytes.push(hex2(heap.memory[chunk.addr + i]));
+      }
+      hdr.textContent = hdrBytes.join(' ');
+      hdr.style.fontFamily = 'var(--font)';
+      hdr.style.fontSize = '11px';
+      hdr.style.color = 'var(--text-dim)';
+    } else {
+      const ps = document.createElement('span');
+      ps.className = 'prev-size';
+      ps.textContent = 'ps:' + prevSizeVal;
+      hdr.appendChild(ps);
 
-    const sz = document.createElement('span');
-    sz.className = 'size-field';
-    sz.textContent = 'sz:' + rawSize;
-    hdr.appendChild(sz);
+      const sz = document.createElement('span');
+      sz.className = 'size-field';
+      sz.textContent = 'sz:' + rawSize;
+      hdr.appendChild(sz);
 
-    const fl = document.createElement('span');
-    fl.className = 'flags';
-    fl.textContent = prevInUse ? 'P' : '';
-    hdr.appendChild(fl);
+      const fl = document.createElement('span');
+      fl.className = 'flags';
+      fl.textContent = prevInUse ? 'P' : '';
+      hdr.appendChild(fl);
+    }
 
     chunkEl.appendChild(hdr);
 
@@ -2033,7 +2130,10 @@ function renderHeap() {
       byteEl.className = 'byte';
       if (byteIdx < heap.memorySize) {
         byteEl.textContent = hex2(heap.memory[byteIdx]);
-        if (chunk.allocated) {
+        if (blindMode) {
+          // No color coding — all bytes look the same
+          byteEl.style.color = 'var(--text-dim)';
+        } else if (chunk.allocated) {
           byteEl.classList.add('allocated');
         } else {
           // First 4 bytes of freed chunk = fd pointer
@@ -2055,15 +2155,21 @@ function renderHeap() {
     chunkEl.appendChild(dataEl);
 
     // Label (include name if we have one)
+    const curEx = typeof state.currentEx === 'number' ? EXERCISES[state.currentEx] : null;
+    const hideLabels = curEx && curEx.showLabels === false;
     const label = document.createElement('div');
     label.className = 'heap-chunk-label';
     const displayAddr = heap.baseAddr + chunk.addr;
-    let chunkLabel = hex8(displayAddr) + ' (' + chunk.dataSize + 'B)';
-    if (state.heapNames) {
-      const nameEntry = Object.entries(state.heapNames).find(([, a]) => a === chunk.addr);
-      if (nameEntry) chunkLabel = nameEntry[0] + ' — ' + chunkLabel;
+    if (hideLabels) {
+      label.textContent = hex8(displayAddr);
+    } else {
+      let chunkLabel = hex8(displayAddr) + ' (' + chunk.dataSize + 'B)';
+      if (state.heapNames) {
+        const nameEntry = Object.entries(state.heapNames).find(([, a]) => a === chunk.addr);
+        if (nameEntry) chunkLabel = nameEntry[0] + ' \u2014 ' + chunkLabel;
+      }
+      label.textContent = chunkLabel;
     }
-    label.textContent = chunkLabel;
     chunkEl.appendChild(label);
 
     strip.appendChild(chunkEl);
@@ -2073,13 +2179,15 @@ function renderHeap() {
   if (heap.topSize > 0) {
     const topEl = document.createElement('div');
     topEl.className = 'heap-top-chunk';
-    topEl.textContent = 'Top chunk (' + heap.topSize + ' bytes free)';
+    topEl.textContent = blindMode ? hex8(heap.baseAddr + heap.topAddr) + ' ...' : 'Top chunk (' + heap.topSize + ' bytes free)';
     strip.appendChild(topEl);
   }
 
   el.appendChild(strip);
 
-  // --- Recycling Lists (free lists) ---
+  // --- Recycling Lists (free lists) --- hide in blind mode
+  if (blindMode) return;
+
   const listsEl = document.createElement('div');
   listsEl.className = 'free-lists';
   const listsTitle = document.createElement('h4');
@@ -2720,6 +2828,120 @@ function renderInput(ex) {
     return;
   }
 
+  if (ex.mode === 'final-chain') {
+    const phase = state.heapPhase;
+    const inCount = phase === 'count';
+    const inLeak = phase === 'leak';
+    const inOverflow = phase === 'overflow';
+    const inExec = phase === 'exec';
+    area.innerHTML = `
+      <div id="chain-count-area" ${inCount ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)"><strong>Phase 1: Integer Overflow.</strong> Enter a count value (unsigned 16-bit). The program allocates count*4 bytes. Find a count where count*4 wraps to a tiny number (16-bit arithmetic):</label>
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.35rem">
+          <input id="chain-count-input" type="text" placeholder="e.g. 16385"
+            style="background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;width:12em"
+            oninput="chainCountPreview()">
+          <span style="color:var(--text-dim)">* 4 =</span>
+          <span id="chain-count-result" style="color:var(--green);font-weight:bold">&mdash;</span>
+        </div>
+        <div id="chain-count-detail" style="font-size:11px;margin-top:0.35rem;min-height:1.5em"></div>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="chainCountSubmit()">scanf(&count)</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="chain-leak-area" ${inLeak ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)"><strong>Phase 2: Info Leak.</strong> The program printed cfg's address. Check the log below. Click Continue when you've noted the address.</label>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="chainLeakContinue()">Continue &rarr;</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="chain-overflow-area" ${inOverflow ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)"><strong>Phase 3: Heap Overflow.</strong> buf is tiny but read() takes 256 bytes. Overflow from buf through cfg's header into cfg->handler. Enter hex bytes:</label>
+        <div style="font-size:11px;color:var(--amber);margin:0.35rem 0" id="chain-overflow-hint"></div>
+        <textarea id="payload-input" placeholder="e.g. 41 41 41 41 ... 50 81 04 08" rows="2"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="chainOverflowSubmit()">read(0, buf, 256)</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="chain-exec-area" ${inExec ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)"><strong>Phase 4: Execute.</strong> cfg->handler() is about to be called. If you overwrote it correctly, win() runs!</label>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="chainExecSubmit()">cfg->handler()</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    builder.style.display = 'none';
+    const calc = document.getElementById('hex-calc');
+    if (calc && inOverflow) {
+      calc.style.display = 'block';
+      calc.innerHTML = `
+        <h4>Hex Calculator</h4>
+        <div class="calc-row">
+          <input id="calc-a" placeholder="value A" oninput="calcHex()">
+          <span class="calc-op" id="calc-op-btn" onclick="toggleCalcOp()" title="click to toggle" style="cursor:pointer">-</span>
+          <input id="calc-b" placeholder="value B" oninput="calcHex()">
+          <span class="calc-eq">=</span>
+          <span id="calc-result">&mdash;</span>
+        </div>
+        <div class="calc-hint">Calculate offsets for your overflow payload.</div>
+      `;
+    }
+    renderHeapSymbols(syms, ex);
+    return;
+  }
+
+  if (ex.mode === 'final-blind') {
+    const phase = state.heapPhase;
+    const inPoison = phase === 'poison';
+    const inWrite = phase === 'write';
+    const inExec = phase === 'exec';
+    const inGuided = phase === 'guided';
+    area.innerHTML = `
+      <div id="blind-guided-area" ${inGuided ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Allocations and frees are happening. Click Step to advance.</label>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="doHeapStep()">Step &rarr;</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="blind-poison-area" ${inPoison ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Write to the freed chunk (ptrs[2]). Enter up to 32 hex bytes. The first 4 bytes overwrite the fd pointer in the tcache free list:</label>
+        <textarea id="payload-input" placeholder="Enter hex bytes..." rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="blindPoisonSubmit()">read(0, ptrs[2], 32)</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="blind-write-area" ${inWrite ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Two mallocs done. y points to your poisoned address. Write 4 bytes to y:</label>
+        <textarea id="payload-input" placeholder="Enter 4 hex bytes..." rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="blindWriteSubmit()">read(0, y, 4)</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+      <div id="blind-exec-area" ${inExec ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">ptrs[0]->fn() is about to be called.</label>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="blindExecSubmit()">ptrs[0]->fn()</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    builder.style.display = 'none';
+    syms.style.display = 'none';
+    return;
+  }
+
   let modeHtml = '';
   if (ex.mode === 'input-hex') {
     modeHtml = `
@@ -3056,6 +3278,34 @@ function loadExercise(idx) {
     state.heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
   }
 
+  if (ex.mode === 'final-chain' && state.heap) {
+    // Don't allocate yet — Phase 1 determines the allocation size
+    state.heapPhase = 'count';
+    state.chainBufSize = 0;
+    state.chainBufAddr = null;
+    state.chainCfgAddr = null;
+    state.heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
+  }
+
+  if (ex.mode === 'final-blind' && state.heap) {
+    // Allocate 4 chunks of 32 bytes
+    const ptrs = [];
+    for (let i = 0; i < 4; i++) {
+      const r = state.heap.malloc(32);
+      if (r) ptrs.push(r);
+    }
+    state.blindPtrs = ptrs;
+    // Set ptrs[0]->fn = normal
+    if (ptrs[0]) {
+      state.heap._writeLE(ptrs[0].dataAddr, state.symbols.normal, 4);
+      for (let i = 0; i < 4; i++) state.heap.written[ptrs[0].dataAddr + i] = 1;
+      state.heap.funcPtrs.fn = { original: state.symbols.normal, current: state.symbols.normal };
+    }
+    state.heapPhase = 'guided';
+    state.heapStep = 0;
+    state.blindYAddr = null;
+  }
+
   state.stepIndex = 0;
   state.execSteps = null;
   state.execIndex = 0;
@@ -3229,7 +3479,18 @@ function loadExercise(idx) {
     log('info', 'Click Step to walk through the House of Lore attack.');
   }
 
-  if (ex.mode !== 'step' && !ex.mode.startsWith('heap-')) {
+  if (ex.mode === 'final-chain') {
+    log('info', 'This program has FOUR bugs. You must chain them all together to redirect execution.');
+    log('info', 'win() is at <span class="log-addr">' + hex8(state.symbols.win) + '</span>');
+    log('info', '<strong>Phase 1:</strong> count is an unsigned 16-bit integer. count * 4 uses 16-bit arithmetic. Find a count that makes count*4 wrap to something tiny.');
+    log('info', 'Hint: 16385 * 4 = 65540. But 65540 mod 65536 = 4. So malloc gets only 4 bytes!');
+  }
+
+  if (ex.mode === 'final-blind') {
+    log('info', '...');
+  }
+
+  if (ex.mode !== 'step' && !ex.mode.startsWith('heap-') && !ex.mode.startsWith('final-')) {
     log('info', 'Go-back address: ' + hex8(retAddr) + ' (where the program normally returns to after vuln finishes)');
   }
 
@@ -4805,6 +5066,11 @@ function doHeapStep() {
     renderLog();
     return;
   }
+
+  if (ex.mode === 'final-blind') {
+    blindDoStep();
+    return;
+  }
 }
 
 // Double-free guided steps
@@ -5862,6 +6128,355 @@ function heapHofFinalSubmit() {
       log('error', 'Wrote ' + sym[0] + '()\'s address — not win(). Write win()\'s address: ' + hex8(state.symbols.win) + ' in little-endian.');
     } else {
       log('error', 'Wrote ' + hex8(writtenAddrU) + ' — that\'s not win() (' + hex8(state.symbols.win) + '). Enter win()\'s address in little-endian!');
+    }
+  }
+
+  renderViz();
+  renderLog();
+}
+
+// ──────────────────────────────────────────────
+// Exercise 27: Full Chain handlers
+// ────────���─────────────────────────���───────────
+
+function chainCountPreview() {
+  const input = document.getElementById('chain-count-input');
+  const result = document.getElementById('chain-count-result');
+  const detail = document.getElementById('chain-count-detail');
+  if (!input || !result) return;
+  const val = parseInt(input.value);
+  if (isNaN(val) || val < 0) {
+    result.textContent = '\u2014';
+    if (detail) detail.innerHTML = '';
+    return;
+  }
+  const count16 = val & 0xFFFF; // unsigned short
+  const product = (count16 * 4) & 0xFFFF; // 16-bit wrap
+  result.textContent = product + ' (0x' + product.toString(16) + ')';
+  if (product < 16 && count16 > 0) {
+    detail.innerHTML = '<span style="color:var(--green)">Integer overflow! ' + count16 + ' * 4 = ' + (count16 * 4) + ', but truncated to 16 bits = <strong>' + product + '</strong>. malloc(' + product + ') is tiny!</span>';
+  } else {
+    detail.innerHTML = '<span style="color:var(--text-dim)">' + count16 + ' * 4 = ' + (count16 * 4) + ' \u2192 16-bit: ' + product + '</span>';
+  }
+}
+
+function chainCountSubmit() {
+  const input = document.getElementById('chain-count-input');
+  if (!input || !input.value.trim()) { log('info', 'Enter a count value.'); renderLog(); return; }
+  const val = parseInt(input.value);
+  if (isNaN(val) || val < 0) { log('error', 'Invalid number.'); renderLog(); return; }
+  const count16 = val & 0xFFFF;
+  const product = (count16 * 4) & 0xFFFF;
+
+  log('action', 'scanf reads count = ' + count16 + ' (unsigned short)');
+  highlightExecLine(11);
+
+  if (product >= 16) {
+    log('error', 'malloc(' + product + ') \u2014 that\'s not small enough to be useful. You need count*4 to wrap to a tiny number (< 16). Try a value where count*4 overflows past 65536.');
+    renderLog();
+    return;
+  }
+
+  if (product === 0) {
+    log('error', 'malloc(0) still returns a minimum-size chunk (16 bytes). That might work, but try getting an even smaller size like 4.');
+    // Still allow it — malloc(0) in our sim allocates minimum chunk
+  }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+
+  // Allocate buf with the wrapped size
+  state.chainBufSize = product;
+  const bufAlloc = heap.malloc(product || 1); // malloc(0) -> minimum chunk
+  if (bufAlloc) {
+    state.chainBufAddr = bufAlloc.addr;
+    state.heapNames['buf'] = bufAlloc.addr;
+    log('action', 'char *buf = malloc(' + product + ') \u2192 buf at offset ' + bufAlloc.addr + ' (heap addr <span class="log-addr">' + hex8(heap.baseAddr + bufAlloc.addr) + '</span>)');
+  }
+  highlightExecLine(13);
+
+  // Allocate cfg (16 bytes: 4 for handler + 12 for name)
+  const cfgAlloc = heap.malloc(16);
+  if (cfgAlloc) {
+    state.chainCfgAddr = cfgAlloc.addr;
+    state.heapNames['cfg'] = cfgAlloc.addr;
+    // Write normal() as the handler
+    heap._writeLE(cfgAlloc.dataAddr, state.symbols.normal, 4);
+    for (let i = 0; i < 4; i++) heap.written[cfgAlloc.dataAddr + i] = 1;
+    log('action', 'Config *cfg = malloc(16) \u2192 cfg at offset ' + cfgAlloc.addr + ' (heap addr <span class="log-addr">' + hex8(heap.baseAddr + cfgAlloc.addr) + '</span>)');
+    log('action', 'cfg->handler = normal (<span class="log-addr">' + hex8(state.symbols.normal) + '</span>)');
+  }
+  highlightExecLine(14);
+
+  // Move to Phase 2: info leak
+  state.heapPhase = 'leak';
+  log('success', 'Integer overflow! malloc got only ' + product + ' bytes instead of ' + (count16 * 4) + '.');
+
+  // The info leak
+  if (cfgAlloc) {
+    log('warn', 'DEBUG: cfg at <span class="log-addr">' + hex8(heap.baseAddr + cfgAlloc.addr) + '</span> <span class="log-label">\u2190 this is the info leak!</span>');
+  }
+  highlightExecLine(18);
+
+  renderInput(ex);
+  renderViz();
+  renderLog();
+}
+
+function chainLeakContinue() {
+  const ex = EXERCISES[state.currentEx];
+  const heap = state.heap;
+
+  if (state.chainBufAddr === null || state.chainCfgAddr === null) {
+    log('error', 'Something went wrong. Reset and try again.');
+    renderLog();
+    return;
+  }
+
+  const bufDataAddr = state.chainBufAddr + heap.HEADER_SIZE;
+  const cfgDataAddr = state.chainCfgAddr + heap.HEADER_SIZE;
+  const distance = cfgDataAddr - bufDataAddr;
+
+  log('info', '<strong>Phase 3:</strong> buf\'s data is at heap offset ' + bufDataAddr + ', cfg\'s handler is at offset ' + cfgDataAddr + '. Distance = ' + distance + ' bytes.');
+  log('info', 'Your payload needs ' + distance + ' bytes of padding, then win()\'s address (<span class="log-addr">' + hex8(state.symbols.win) + '</span>) in little-endian.');
+
+  state.heapPhase = 'overflow';
+  renderInput(ex);
+
+  // Set the overflow hint
+  const hintEl = document.getElementById('chain-overflow-hint');
+  if (hintEl) {
+    hintEl.innerHTML = 'buf data starts at offset ' + bufDataAddr + '. cfg->handler is at offset ' + cfgDataAddr + '. Padding needed: <strong>' + distance + ' bytes</strong>, then win() address in LE.';
+  }
+
+  renderViz();
+  renderLog();
+}
+
+function chainOverflowSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter a hex payload.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length === 0) { log('error', 'Invalid hex input.'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+
+  const bufDataAddr = state.chainBufAddr + heap.HEADER_SIZE;
+  const cfgDataAddr = state.chainCfgAddr + heap.HEADER_SIZE;
+
+  // Write bytes starting at buf's data
+  heap.write(bufDataAddr, bytes);
+  highlightExecLine(21);
+
+  log('action', 'read(0, buf, 256) \u2014 wrote ' + bytes.length + ' bytes starting at buf.');
+
+  const distance = cfgDataAddr - bufDataAddr;
+  if (bytes.length <= distance) {
+    log('error', 'Only ' + bytes.length + ' bytes written. You need at least ' + (distance + 4) + ' bytes to reach and overwrite cfg->handler (' + distance + ' bytes padding + 4 bytes address).');
+    renderViz();
+    renderLog();
+    return;
+  }
+
+  // Read what landed at cfg->handler
+  const newPtr = heap._readLE(cfgDataAddr, 4);
+  heap.funcPtrs.handler = { original: state.symbols.normal, current: newPtr };
+
+  log('action', 'Overflow! Bytes reached cfg->handler. The function pointer is now <span class="log-addr">' + hex8(newPtr) + '</span>');
+
+  state.heapPhase = 'exec';
+  renderInput(ex);
+  renderViz();
+  renderLog();
+}
+
+function chainExecSubmit() {
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+
+  const cfgDataAddr = state.chainCfgAddr + heap.HEADER_SIZE;
+  const currentPtr = heap._readLE(cfgDataAddr, 4);
+
+  log('action', 'cfg->handler() is called. handler = <span class="log-addr">' + hex8(currentPtr) + '</span>');
+  highlightExecLine(23);
+
+  if (currentPtr === state.symbols.win) {
+    log('success', 'cfg->handler points to win()! Executing...');
+    heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.win };
+    state.completed.add(state.currentEx);
+    saveProgress();
+    renderNav();
+    showSuccess(ex.winTitle, ex.winMsg);
+  } else {
+    const sym = Object.entries(state.symbols).find(([, a]) => a === currentPtr);
+    if (sym) {
+      log('error', 'Called ' + sym[0] + '() \u2014 not win(). Go back and fix your overflow payload.');
+    } else {
+      log('error', 'Jumped to <span class="log-addr">' + hex8(currentPtr) + '</span> \u2014 SEGFAULT! The function pointer must be win()\'s address. Reset and fix your payload.');
+    }
+  }
+
+  renderViz();
+  renderLog();
+}
+
+// ──────────────��─────────────────────��─────────
+// Exercise 28: Blind Chain handlers
+// ───���────────────────────────���─────────────────
+
+const BLIND_STEPS = [
+  {
+    log: [['action', 'free(ptrs[1])']],
+    doFree: 1,
+    srcLine: 10,
+  },
+  {
+    log: [['action', 'free(ptrs[2])']],
+    doFree: 2,
+    srcLine: 11,
+    done: true,
+  },
+];
+
+function blindDoStep() {
+  const ex = EXERCISES[state.currentEx];
+  if (!ex || ex.mode !== 'final-blind') return;
+  if (state.heapStep >= BLIND_STEPS.length) return;
+
+  const step = BLIND_STEPS[state.heapStep];
+  const heap = state.heap;
+
+  if (step.doFree !== undefined && state.blindPtrs && state.blindPtrs[step.doFree]) {
+    heap.free(state.blindPtrs[step.doFree].addr);
+  }
+
+  if (step.log) step.log.forEach(([cls, msg]) => log(cls, msg));
+  if (step.srcLine !== undefined) highlightExecLine(step.srcLine);
+
+  state.heapStep++;
+
+  if (step.done) {
+    state.heapPhase = 'poison';
+    renderInput(ex);
+  }
+
+  renderViz();
+  renderLog();
+}
+
+function blindPoisonSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter hex bytes.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length < 4) { log('info', 'Need at least 4 bytes.'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+
+  // Write to freed chunk ptrs[2]'s data area (UAF write)
+  const ptr2DataAddr = state.blindPtrs[2].dataAddr;
+  heap.write(ptr2DataAddr, bytes);
+  log('action', 'read(0, ptrs[2], 32) \u2014 wrote ' + bytes.length + ' bytes to freed chunk.');
+  highlightExecLine(14);
+
+  // Read the poisoned fd
+  const poisonedFd = heap._readLE(ptr2DataAddr, 4);
+  log('action', 'fd = <span class="log-addr">' + hex8(poisonedFd) + '</span>');
+
+  // malloc(32) #1 -> returns ptrs[2] from tcache (the head)
+  const x = heap.malloc(32);
+  log('action', 'void *x = malloc(32)');
+  highlightExecLine(15);
+
+  // malloc(32) #2 -> follows poisoned fd to wherever user pointed it
+  // Determine if the poisoned fd is a heap absolute addr or relative offset
+  let targetOffset;
+  if (poisonedFd >= heap.baseAddr && poisonedFd < heap.baseAddr + heap.memorySize) {
+    // User gave an absolute heap address — convert to offset
+    targetOffset = poisonedFd - heap.baseAddr;
+  } else if (poisonedFd < heap.memorySize) {
+    // User gave a raw offset
+    targetOffset = poisonedFd;
+  } else {
+    // Some other address — just store it, will likely fail
+    targetOffset = poisonedFd;
+  }
+
+  // The second malloc conceptually follows the fd pointer
+  // We don't use heap.malloc here because the sim doesn't actually follow fd
+  state.blindYAddr = targetOffset;
+  state.blindYAbsAddr = poisonedFd;
+
+  log('action', 'void *y = malloc(32) \u2014 follows fd to <span class="log-addr">' + hex8(poisonedFd) + '</span>.');
+  highlightExecLine(16);
+
+  state.heapPhase = 'write';
+  renderInput(ex);
+  renderViz();
+  renderLog();
+}
+
+function blindWriteSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter 4 hex bytes.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length < 4) { log('info', 'Need 4 bytes.'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+
+  // Write to wherever y points
+  const targetOffset = state.blindYAddr;
+  if (targetOffset >= 0 && targetOffset < heap.memorySize) {
+    heap.write(targetOffset, bytes);
+  }
+
+  const writtenVal = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+  const writtenValU = writtenVal >>> 0;
+
+  log('action', 'read(0, y, 4) \u2014 wrote <span class="log-addr">' + hex8(writtenValU) + '</span> to <span class="log-addr">' + hex8(state.blindYAbsAddr) + '</span>.');
+  highlightExecLine(17);
+
+  // Check if this overwrote ptrs[0]->fn
+  const ptr0DataAddr = state.blindPtrs[0].dataAddr;
+  const currentFn = heap._readLE(ptr0DataAddr, 4);
+  heap.funcPtrs.fn = { original: state.symbols.normal, current: currentFn };
+
+  state.heapPhase = 'exec';
+  renderInput(ex);
+  renderViz();
+  renderLog();
+}
+
+function blindExecSubmit() {
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+
+  const ptr0DataAddr = state.blindPtrs[0].dataAddr;
+  const currentFn = heap._readLE(ptr0DataAddr, 4);
+
+  log('action', 'ptrs[0]->fn() \u2014 calling <span class="log-addr">' + hex8(currentFn) + '</span>');
+  highlightExecLine(19);
+
+  if (currentFn === state.symbols.win) {
+    log('success', 'That\'s 0x08048150 \u2014 the hidden function. Executing...');
+    heap.funcPtrs.fn = { original: state.symbols.normal, current: state.symbols.win };
+    state.completed.add(state.currentEx);
+    saveProgress();
+    renderNav();
+    showSuccess(ex.winTitle, ex.winMsg);
+  } else {
+    const sym = Object.entries(state.symbols).find(([, a]) => a === currentFn);
+    if (sym) {
+      log('error', 'Called ' + sym[0] + '(). That\'s not the target.');
+    } else if (currentFn === state.symbols.normal) {
+      log('error', 'Called normal(). The function pointer was not overwritten. Your tcache poison didn\'t land on ptrs[0]->fn.');
+    } else {
+      log('error', 'SEGFAULT at <span class="log-addr">' + hex8(currentFn) + '</span>. Wrong address.');
     }
   }
 
