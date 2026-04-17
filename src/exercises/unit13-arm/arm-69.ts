@@ -1,0 +1,48 @@
+import { Exercise } from '../types';
+
+export const arm69: Exercise = {
+  id: 'arm-69',
+  unitId: 'unit13-arm',
+  title: 'ARM Stack Overflow',
+  desc: 'On ARM, the saved <b>LR (Link Register)</b> on the stack serves the same purpose as the saved return address on x86. Overflow the 16-byte buffer to overwrite the saved LR with the address of <b>win()</b>. The stack layout is: <code>[buffer 16B] [saved FP 4B] [saved LR 4B]</code>. Fill the buffer (16 bytes), overwrite the saved FP (4 bytes of junk), then write the address of win() in <b>little-endian</b>.',
+  source: {
+    c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <string.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void win() {', cls: '' },
+      { text: '    printf("FLAG{arm_lr_hijack}\\n");', cls: '' },
+      { text: '    // You redirected LR here!', cls: 'cmt' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void vuln() {', cls: '', fn: true },
+      { text: '    char buf[16];      // 16-byte buffer', cls: '' },
+      { text: '    // ARM prologue pushed {fp, lr} above buf', cls: 'cmt' },
+      { text: '    gets(buf);         // no bounds check!', cls: 'highlight vuln' },
+      { text: '    // epilogue: pop {fp, lr}; bx lr', cls: 'cmt' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: '// Stack layout (low → high):', cls: 'cmt' },
+      { text: '// [  buf 16B  ][saved FP][saved LR]', cls: 'cmt' },
+      { text: '//                        ^^^^^^^^', cls: 'cmt' },
+      { text: '//                  overwrite this with win()!', cls: 'cmt' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    vuln();', cls: '' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+  },
+  mode: 'input-hex',
+  vizMode: 'stack',
+  asmArch: 'arm',
+  bufSize: 16,
+  showSymbols: true,
+  showBuilder: true,
+  check(sim, _heap, symbols) {
+    return sim.getRetAddr() === symbols.win;
+  },
+  winTitle: 'FLAG{arm_lr_hijack}',
+  winMsg: 'You overwrote the saved LR on the ARM stack to hijack execution! On ARM, the saved LR in the stack frame is the equivalent of x86\'s saved EIP. The same buffer overflow principle applies across architectures — only the register names change.',
+  realWorld: 'CVE-2019-2215: A use-after-free in the Android kernel\'s binder driver was exploited on ARM devices to achieve root privilege escalation, used by NSO Group\'s Pegasus spyware.',
+};

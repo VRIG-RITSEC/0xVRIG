@@ -1,0 +1,61 @@
+import { Exercise } from '../types';
+import { AsmInstruction } from '@/engine/x86/types';
+
+const instructions: AsmInstruction[] = [
+  { addr: 0x0000555555554000, bytes: [0xf3, 0x0f, 0x1e, 0xfa], mnemonic: 'endbr64', operands: '', comment: 'CET IBT: valid indirect branch target' },
+  { addr: 0x0000555555554004, bytes: [0x55], mnemonic: 'push', operands: 'rbp', comment: 'Prologue (shadow stack also gets ret addr)' },
+  { addr: 0x0000555555554005, bytes: [0x48, 0x89, 0xe5], mnemonic: 'mov', operands: 'rbp, rsp', comment: 'Frame pointer' },
+  { addr: 0x0000555555554008, bytes: [0x48, 0x83, 0xec, 0x10], mnemonic: 'sub', operands: 'rsp, 16', comment: 'Stack canary reserves space' },
+  { addr: 0x000055555555400c, bytes: [0x64, 0x48, 0x8b, 0x04, 0x25, 0x28, 0x00, 0x00, 0x00], mnemonic: 'mov', operands: 'rax, fs:0x28', comment: 'Load stack canary from TLS' },
+  { addr: 0x0000555555554015, bytes: [0x48, 0x89, 0x45, 0xf8], mnemonic: 'mov', operands: '[rbp-8], rax', comment: 'Place canary on stack' },
+  { addr: 0x0000555555554019, bytes: [0x31, 0xc0], mnemonic: 'xor', operands: 'eax, eax', comment: 'Clear rax (prevent leak)' },
+  { addr: 0x000055555555401b, bytes: [0xf4], mnemonic: 'hlt', operands: '', comment: '' },
+];
+
+export const exercise: Exercise = {
+  id: 'mit-86',
+  unitId: 'unit15-mitigations',
+  title: '86: Combined Mitigations',
+  desc: '<b>Goal:</b> Analyze a fully hardened binary with all major mitigations enabled. A <code>checksec</code>-style summary shows: <strong>ASLR+PIE</strong> (randomized addresses), <strong>NX</strong> (non-executable stack), <strong>Canary</strong> (stack cookie), <strong>Full RELRO</strong> (read-only GOT), and <strong>CET</strong> (hardware CFI). Understand what each mitigation blocks and what attack classes remain even with all of them active.',
+  source: {
+    c: [
+      { text: '// checksec output for hardened binary:', cls: 'comment' },
+      { text: '// RELRO:    Full RELRO', cls: 'comment' },
+      { text: '// Stack:    Canary found', cls: 'comment' },
+      { text: '// NX:       NX enabled', cls: 'comment' },
+      { text: '// PIE:      PIE enabled', cls: 'comment' },
+      { text: '// ASLR:     Enabled (28-bit entropy)', cls: 'comment' },
+      { text: '// CET:      IBT + SHSTK', cls: 'comment' },
+      { text: '', cls: '' },
+      { text: '// What each blocks:', cls: 'comment' },
+      { text: '// NX     -> no shellcode on stack/heap', cls: 'comment' },
+      { text: '// Canary -> detects linear stack overflow', cls: 'comment' },
+      { text: '// ASLR   -> randomizes addresses', cls: 'comment' },
+      { text: '// PIE    -> randomizes .text/.data too', cls: 'comment' },
+      { text: '// RELRO  -> read-only GOT', cls: 'comment' },
+      { text: '// CET    -> hardware CFI', cls: 'comment' },
+      { text: '', cls: '' },
+      { text: 'endbr64', cls: 'asm' },
+      { text: 'push rbp', cls: 'asm' },
+      { text: 'mov rbp, rsp', cls: 'asm' },
+      { text: 'sub rsp, 16', cls: 'asm' },
+      { text: 'mov rax, fs:0x28  ; canary', cls: 'asm' },
+      { text: 'mov [rbp-8], rax', cls: 'asm' },
+      { text: 'xor eax, eax', cls: 'asm' },
+      { text: 'hlt', cls: 'asm' },
+    ],
+  },
+  mode: 'asm-quiz',
+  vizMode: 'asm',
+  asmArch: 'x86-64',
+  asmInstructions: instructions,
+  asmQuiz: [
+    { question: 'Which mitigation prevents executing shellcode injected onto the stack? Answer with the byte value of NX enabled: 1=NX, 2=Canary, 3=ASLR, 4=PIE', answer: 1, format: 'decimal', hint: 'NX (No-eXecute) / DEP marks the stack non-executable. Even if shellcode is written there, the CPU refuses to execute it.' },
+    { question: 'Which mitigation detects a simple linear buffer overflow that overwrites the return address? (1=NX, 2=Canary, 3=ASLR, 4=RELRO)', answer: 2, format: 'decimal', hint: 'The stack canary sits between the buffer and saved return address. A linear overflow must corrupt the canary to reach the return address, and __stack_chk_fail detects this.' },
+    { question: 'Even with ALL mitigations enabled, which attack class still works? (1=shellcode injection, 2=ROP chains, 3=data-only/logic bugs, 4=GOT overwrite)', answer: 3, format: 'decimal', hint: 'Data-only attacks modify non-control data (e.g., an is_admin flag, a filename string, or an array index) without corrupting any code pointers. No mitigation checks data integrity.' },
+    { question: 'The "mov rax, fs:0x28" instruction loads the canary. What segment register stores thread-local data on x86-64 Linux?', answer: 0x28, format: 'hex', hint: 'fs:0x28 is the offset in the Thread Control Block (TCB) where glibc stores the stack canary. The fs segment register points to thread-local storage.' },
+  ],
+  check: () => false,
+  winTitle: 'Full Hardening Analyzed!',
+  winMsg: 'You understand the complete mitigation stack: NX blocks shellcode, canaries detect stack corruption, ASLR/PIE randomize addresses, Full RELRO locks the GOT, and CET provides hardware CFI. But data-only attacks and logic bugs remain viable even with everything enabled.',
+};

@@ -1,0 +1,62 @@
+import { Exercise } from '../types';
+import { AsmInstruction } from '@/engine/x86/types';
+
+const instructions: AsmInstruction[] = [
+  { addr: 0x00010000, bytes: [0xe3, 0xa0, 0x00, 0x05], mnemonic: 'mov', operands: 'r0, #5', comment: 'R0 = 5' },
+  { addr: 0x00010004, bytes: [0xe3, 0xa0, 0x10, 0x05], mnemonic: 'mov', operands: 'r1, #5', comment: 'R1 = 5' },
+  { addr: 0x00010008, bytes: [0xe3, 0xa0, 0x20, 0x00], mnemonic: 'mov', operands: 'r2, #0', comment: 'R2 = 0 (default)' },
+  { addr: 0x0001000c, bytes: [0xe3, 0xa0, 0x30, 0x00], mnemonic: 'mov', operands: 'r3, #0', comment: 'R3 = 0 (default)' },
+  { addr: 0x00010010, bytes: [0xe1, 0x50, 0x00, 0x01], mnemonic: 'cmp', operands: 'r0, r1', comment: 'Compare R0 with R1 (5 vs 5)' },
+  { addr: 0x00010014, bytes: [0x03, 0xa0, 0x20, 0x01], mnemonic: 'moveq', operands: 'r2, #1', comment: 'If equal: R2 = 1' },
+  { addr: 0x00010018, bytes: [0x13, 0xa0, 0x20, 0x00], mnemonic: 'movne', operands: 'r2, #0', comment: 'If not equal: R2 = 0' },
+  { addr: 0x0001001c, bytes: [0xc3, 0xa0, 0x30, 0x63], mnemonic: 'movgt', operands: 'r3, #99', comment: 'If greater than: R3 = 99' },
+  { addr: 0x00010020, bytes: [0xe3, 0xa0, 0x40, 0x0a], mnemonic: 'mov', operands: 'r4, #10', comment: 'R4 = 10' },
+  { addr: 0x00010024, bytes: [0xe1, 0x50, 0x00, 0x04], mnemonic: 'cmp', operands: 'r0, r4', comment: 'Compare R0 with R4 (5 vs 10)' },
+  { addr: 0x00010028, bytes: [0xb3, 0xa0, 0x50, 0x01], mnemonic: 'movlt', operands: 'r5, #1', comment: 'If less than: R5 = 1' },
+  { addr: 0x0001002c, bytes: [0xa3, 0xa0, 0x60, 0x01], mnemonic: 'movge', operands: 'r6, #1', comment: 'If greater or equal: R6 = 1' },
+  { addr: 0x00010030, bytes: [0xe7, 0xfe, 0xde, 0xf0], mnemonic: 'hlt', operands: '', comment: '' },
+];
+
+export const arm66: Exercise = {
+  id: 'arm-66',
+  unitId: 'unit13-arm',
+  title: 'Conditional Execution',
+  desc: '<b>Goal:</b> Learn ARM\'s signature feature: <b>conditional execution</b>. On ARM, almost any instruction can have a condition code suffix. <code>MOVEQ</code> only executes if the Zero flag is set (equal). <code>MOVGT</code> only if greater than. This avoids branches and keeps the pipeline full. First, <code>CMP</code> sets the flags, then conditional instructions check them.',
+  source: {
+    c: [
+      { text: '// ARM Conditional Execution', cls: 'comment' },
+      { text: '// Condition codes: EQ, NE, GT, LT, GE, LE', cls: 'comment' },
+      { text: '// CMP sets N, Z, C, V flags', cls: 'comment' },
+      { text: '// Any instruction can be conditional!', cls: 'comment' },
+      { text: '', cls: '' },
+      { text: 'mov r0, #5', cls: 'asm' },
+      { text: 'mov r1, #5', cls: 'asm' },
+      { text: 'mov r2, #0          ; default', cls: 'asm' },
+      { text: 'mov r3, #0          ; default', cls: 'asm' },
+      { text: '', cls: '' },
+      { text: 'cmp r0, r1          ; 5 vs 5', cls: 'asm' },
+      { text: 'moveq r2, #1        ; if equal?', cls: 'asm' },
+      { text: 'movne r2, #0        ; if not equal?', cls: 'asm' },
+      { text: 'movgt r3, #99       ; if greater?', cls: 'asm' },
+      { text: '', cls: '' },
+      { text: 'mov r4, #10', cls: 'asm' },
+      { text: 'cmp r0, r4          ; 5 vs 10', cls: 'asm' },
+      { text: 'movlt r5, #1        ; if less than?', cls: 'asm' },
+      { text: 'movge r6, #1        ; if greater or equal?', cls: 'asm' },
+      { text: 'hlt', cls: 'asm' },
+    ],
+  },
+  mode: 'asm-quiz',
+  vizMode: 'asm',
+  asmArch: 'arm',
+  asmInstructions: instructions,
+  asmInitialRegs: { r5: 0, r6: 0 },
+  asmQuiz: [
+    { question: 'After "cmp r0, r1" (5 vs 5), what is R2? (MOVEQ sets it to 1, MOVNE sets it to 0)', answer: 1, format: 'decimal', hint: '5 == 5, so the EQ condition is true. MOVEQ executes (R2=1), then MOVNE does NOT execute because NE is false.' },
+    { question: 'After "cmp r0, r1" (5 vs 5), what is R3? (MOVGT would set it to 99)', answer: 0, format: 'decimal', hint: '5 is NOT greater than 5 (they are equal), so MOVGT does not execute. R3 stays at its default value of 0.' },
+    { question: 'After "cmp r0, r4" (5 vs 10), does MOVLT execute? What is R5? (1=yes, 0=no)', answer: 1, format: 'decimal', hint: '5 < 10 is true, so the LT condition fires and R5 = 1.' },
+  ],
+  check: () => false,
+  winTitle: 'Conditional Execution Mastered!',
+  winMsg: 'You understand ARM conditional execution. This feature lets ARM avoid many branch instructions, which is why ARM code can be very compact and efficient.',
+};

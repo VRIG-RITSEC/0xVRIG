@@ -1,4 +1,5 @@
 import { Exercise, Unit, Badge, Track } from './types';
+import { unitIntroCExercises } from './unit-intro-c';
 import { unit0Exercises } from './unit0-asm';
 import { unit1Exercises } from './unit1-stack';
 import { unit2Exercises } from './unit2-logic';
@@ -10,9 +11,16 @@ import { unit7Exercises } from './unit7-x64';
 import { unit8Exercises } from './unit8-win-stack';
 import { unit9Exercises } from './unit9-win-heap';
 import { unit10Exercises } from './unit10-challenges';
+import { unit11Exercises } from './unit11-heap-internals';
+import { unit12Exercises } from './unit12-win-heap-internals';
+import { unit13Exercises } from './unit13-arm';
+import { unit14Exercises } from './unit14-mips';
+import { unit15Exercises } from './unit15-mitigations';
+import { unit16Exercises } from './unit16-advanced';
+import { unit17Exercises } from './unit17-advanced-ii';
 
-// All exercises from all units, flattened
 const ALL_EXERCISES: Exercise[] = [
+  ...unitIntroCExercises,
   ...unit0Exercises,
   ...unit1Exercises,
   ...unit2Exercises,
@@ -24,15 +32,22 @@ const ALL_EXERCISES: Exercise[] = [
   ...unit8Exercises,
   ...unit9Exercises,
   ...unit10Exercises,
+  ...unit11Exercises,
+  ...unit12Exercises,
+  ...unit13Exercises,
+  ...unit14Exercises,
+  ...unit15Exercises,
+  ...unit16Exercises,
+  ...unit17Exercises,
 ];
 
-// Exercise lookup map
 const exerciseMap = new Map<string, Exercise>();
 for (const ex of ALL_EXERCISES) {
   exerciseMap.set(ex.id, ex);
 }
 
 export const UNITS: Unit[] = [
+  { id: 'unit-intro-c', name: 'Intro to C', exerciseIds: ['c-01', 'c-02', 'c-03', 'c-04', 'c-05', 'c-06', 'c-07', 'c-08'] },
   { id: 'unit0-asm', name: 'ASM', exerciseIds: ['asm-01', 'asm-02', 'asm-03', 'asm-04', 'asm-05', 'asm-06', 'asm-07', 'asm-08', 'asm-09', 'asm-10'] },
   { id: 'unit1-stack', name: 'STACK', exerciseIds: ['stack-01', 'stack-02', 'stack-03', 'stack-04', 'stack-05'] },
   { id: 'unit2-logic', name: 'Logic & Input Mismatches', exerciseIds: ['logic-06', 'logic-07', 'logic-08', 'logic-09', 'logic-10'] },
@@ -44,18 +59,36 @@ export const UNITS: Unit[] = [
   { id: 'unit8-win-stack', name: 'WIN STACK', exerciseIds: ['win-37', 'win-38', 'win-39', 'win-40', 'win-41', 'win-42'], platform: 'windows' },
   { id: 'unit9-win-heap', name: 'WIN HEAP', exerciseIds: ['win-43', 'win-44', 'win-45', 'win-46'], platform: 'windows' },
   { id: 'unit10-challenges', name: 'CTF Lab', exerciseIds: ['ctf-47', 'ctf-48', 'ctf-49', 'ctf-50', 'ctf-51', 'ctf-52'] },
+  { id: 'unit11-heap-internals', name: 'Heap Internals', exerciseIds: ['hint-53', 'hint-54', 'hint-55', 'hint-56', 'hint-57', 'hint-58'] },
+  { id: 'unit12-win-heap-internals', name: 'Win Heap Internals', exerciseIds: ['whint-59', 'whint-60', 'whint-61', 'whint-62'], platform: 'windows' },
+  { id: 'unit13-arm', name: 'ARM', exerciseIds: ['arm-63', 'arm-64', 'arm-65', 'arm-66', 'arm-67', 'arm-68', 'arm-69', 'arm-70'] },
+  { id: 'unit14-mips', name: 'MIPS', exerciseIds: ['mips-71', 'mips-72', 'mips-73', 'mips-74', 'mips-75', 'mips-76', 'mips-77', 'mips-78'] },
+  { id: 'unit15-mitigations', name: 'Mitigations', exerciseIds: ['mit-79', 'mit-80', 'mit-81', 'mit-82', 'mit-83', 'mit-84', 'mit-85', 'mit-86'] },
+  { id: 'unit16-advanced', name: 'Advanced I', exerciseIds: ['adv-87', 'adv-88', 'adv-89', 'adv-90', 'adv-91', 'adv-92', 'adv-93', 'adv-94'] },
+  { id: 'unit17-advanced-ii', name: 'Advanced II', exerciseIds: ['adv2-95', 'adv2-96', 'adv2-97', 'adv2-98', 'adv2-99', 'adv2-100', 'adv2-101', 'adv2-102'] },
 ];
 
 export const TRACKS: Track[] = [
-  { id: 'foundations', name: 'Foundations', unitIds: ['unit0-asm', 'unit7-x64', 'unit1-stack', 'unit3-stack-ii'] },
+  { id: 'foundations', name: 'Foundations', unitIds: ['unit-intro-c', 'unit0-asm', 'unit7-x64', 'unit1-stack', 'unit3-stack-ii'] },
   { id: 'logic-input', name: 'Logic & Input', unitIds: ['unit2-logic'] },
-  { id: 'linux-heap', name: 'Linux Heap', unitIds: ['unit4-heap', 'unit5-heap-ii'] },
-  { id: 'windows', name: 'Windows', unitIds: ['unit8-win-stack', 'unit9-win-heap'] },
-  { id: 'advanced', name: 'Advanced', unitIds: ['unit6-final'] },
+  { id: 'linux-heap', name: 'Linux Heap', unitIds: ['unit11-heap-internals', 'unit4-heap', 'unit5-heap-ii'] },
+  { id: 'windows', name: 'Windows', unitIds: ['unit8-win-stack', 'unit12-win-heap-internals', 'unit9-win-heap'] },
+  { id: 'architectures', name: 'Architectures', unitIds: ['unit13-arm', 'unit14-mips'] },
+  { id: 'defense', name: 'Defense & Theory', unitIds: ['unit15-mitigations'] },
+  { id: 'advanced', name: 'Advanced', unitIds: ['unit6-final', 'unit16-advanced', 'unit17-advanced-ii'] },
   { id: 'challenges', name: 'Challenges', unitIds: ['unit10-challenges'] },
 ];
 
 export const BADGES: Badge[] = [
+  {
+    id: 'c-beginner',
+    name: 'C Beginner',
+    icon: '\u{1F4DA}',
+    condition: (completed) => {
+      const unit = UNITS.find(u => u.id === 'unit-intro-c');
+      return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
+    },
+  },
   {
     id: 'asm-apprentice',
     name: 'ASM Apprentice',
@@ -111,10 +144,28 @@ export const BADGES: Badge[] = [
     },
   },
   {
+    id: 'heap-internist',
+    name: 'Heap Internist',
+    icon: '\u{1F9EC}',
+    condition: (completed) => {
+      const unit = UNITS.find(u => u.id === 'unit11-heap-internals');
+      return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
+    },
+  },
+  {
     id: 'full-chain',
     name: 'Full Chain',
     icon: '\u{1F517}',
     condition: (completed) => completed.has('final-27'),
+  },
+  {
+    id: 'x64-master',
+    name: 'x64 Master',
+    icon: '\u{1F4BB}',
+    condition: (completed) => {
+      const unit = UNITS.find(u => u.id === 'unit7-x64');
+      return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
+    },
   },
   {
     id: 'windows-warrior',
@@ -129,12 +180,64 @@ export const BADGES: Badge[] = [
     },
   },
   {
-    id: 'x64-master',
-    name: 'x64 Master',
-    icon: '\u{1F4BB}',
+    id: 'arm-exploiter',
+    name: 'ARM Exploiter',
+    icon: '\u{1F4AA}',
     condition: (completed) => {
-      const unit = UNITS.find(u => u.id === 'unit7-x64');
+      const unit = UNITS.find(u => u.id === 'unit13-arm');
       return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
+    },
+  },
+  {
+    id: 'mips-exploiter',
+    name: 'MIPS Exploiter',
+    icon: '\u{1F680}',
+    condition: (completed) => {
+      const unit = UNITS.find(u => u.id === 'unit14-mips');
+      return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
+    },
+  },
+  {
+    id: 'mitigation-master',
+    name: 'Mitigation Master',
+    icon: '\u{1F6E1}',
+    condition: (completed) => {
+      const unit = UNITS.find(u => u.id === 'unit15-mitigations');
+      return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
+    },
+  },
+  {
+    id: 'advanced-attacker',
+    name: 'Advanced Attacker',
+    icon: '\u{1F525}',
+    condition: (completed) => {
+      const unit = UNITS.find(u => u.id === 'unit16-advanced');
+      return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
+    },
+  },
+  {
+    id: 'modern-threat',
+    name: 'Modern Threat',
+    icon: '\u{1F47E}',
+    condition: (completed) => {
+      const unit = UNITS.find(u => u.id === 'unit17-advanced-ii');
+      return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
+    },
+  },
+  {
+    id: 'multi-arch',
+    name: 'Multi-Arch',
+    icon: '\u{1F30D}',
+    condition: (completed) => {
+      const x86 = UNITS.find(u => u.id === 'unit0-asm');
+      const x64 = UNITS.find(u => u.id === 'unit7-x64');
+      const arm = UNITS.find(u => u.id === 'unit13-arm');
+      const mips = UNITS.find(u => u.id === 'unit14-mips');
+      return !!(x86 && x64 && arm && mips) &&
+        x86.exerciseIds.every(id => completed.has(id)) &&
+        x64.exerciseIds.every(id => completed.has(id)) &&
+        arm.exerciseIds.every(id => completed.has(id)) &&
+        mips.exerciseIds.every(id => completed.has(id));
     },
   },
   {
