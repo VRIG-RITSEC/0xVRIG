@@ -1297,13 +1297,148 @@ const EXERCISES = [
     winTitle: 'FLAG{srop}',
     winMsg: 'You faked a signal frame and used sigreturn to set every register at once! SROP is incredibly powerful — with one gadget (sigreturn) you can set up any register state you want. It\'s used in advanced exploits when gadgets are scarce.',
   },
+
+  // ── UNIT 4: HEAP ──────────────────────────────
+
+  // Exercise 15 (index 14): The Heap — guided walkthrough
+  {
+    title: '15: The Heap',
+    unit: 4,
+    desc: 'The <strong>heap</strong> is another region of memory, used when the program asks for memory at runtime with <strong>malloc()</strong>. Each block has a small header (metadata) followed by your data. When you <strong>free()</strong> a block, it goes on a recycling list — and the next malloc of the same size gets it back.',
+    code: [
+      { text: '// How dynamic memory works', cls: 'cmt' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    char *a = malloc(16);', cls: 'highlight' },
+      { text: '    char *b = malloc(16);', cls: 'highlight' },
+      { text: '    free(a);', cls: 'highlight vuln' },
+      { text: '    free(b);', cls: 'highlight vuln' },
+      { text: '    char *c = malloc(16);', cls: 'highlight' },
+      { text: '    // c gets recycled memory!', cls: 'cmt' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'step',
+    vizMode: 'heap',
+    heapSize: 256,
+    steps: [
+      { action: 'init', log: ['info', 'The heap starts as one big block of empty memory — the "top chunk" (leftover space). Click Step to watch malloc() and free() in action.'] },
+      { action: 'malloc', size: 16, name: 'A', srcLine: 4, log: ['action', 'malloc(16) — carves a 24-byte block from the top (16 bytes data + 8 bytes header metadata)'] },
+      { action: 'malloc', size: 16, name: 'B', srcLine: 5, log: ['action', 'malloc(16) — second block carved, right after the first'] },
+      { action: 'free', name: 'A', srcLine: 6, log: ['action', 'free(A) — block A goes to the recycling list (tcache). Notice the pointer (fd) in its data area — it points to the next free block.'] },
+      { action: 'free', name: 'B', srcLine: 7, log: ['action', 'free(B) — block B also freed. Its fd pointer points to A, forming a chain: B → A → nil'] },
+      { action: 'malloc', size: 16, name: 'C', srcLine: 8, log: ['action', 'malloc(16) — the allocator checks the recycling list FIRST. B was most recently freed, so it comes back (last in, first out)!'] },
+      { action: 'done', log: ['success', 'The heap allocator recycles freed blocks. When you free memory and it gets reused, the new data occupies the SAME spot as the old data. This recycling behavior is what makes heap exploits possible!'] },
+    ],
+    check() { return false; },
+  },
+
+  // Exercise 16 (index 15): Use-After-Free
+  {
+    title: '16: Use-After-Free',
+    unit: 4,
+    desc: 'A <strong>use-after-free (UAF)</strong> happens when the program frees memory but keeps using the old pointer. If new data gets allocated in that same spot, the old pointer now points to YOUR data. Here, a struct with a function pointer gets freed, then a note with the same size takes its place.',
+    code: [
+      { text: 'struct User {', cls: '' },
+      { text: '    void (*action)();', cls: 'highlight' },
+      { text: '    char name[12];', cls: '' },
+      { text: '};', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+      { text: 'void greet() { printf("Hello!\\n"); }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    User *u = malloc(16);', cls: '' },
+      { text: '    u->action = greet;', cls: '' },
+      { text: '    free(u);', cls: 'highlight vuln' },
+      { text: '    // ... u is freed but pointer still exists', cls: 'cmt' },
+      { text: '    char *note = malloc(16);', cls: 'highlight' },
+      { text: '    read(0, note, 16);', cls: 'highlight vuln' },
+      { text: '    u->action();', cls: 'highlight vuln' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'heap-uaf',
+    vizMode: 'heap',
+    heapSize: 256,
+    showSymbols: true,
+    check(heap) {
+      return heap.funcPtrs.action && heap.funcPtrs.action.current === state.symbols.win;
+    },
+    winTitle: 'FLAG{use_after_free}',
+    winMsg: 'The freed User struct was recycled for the Note allocation. Your data overwrote the function pointer. When the program called u->action(), it jumped to YOUR address. This is use-after-free — one of the most common vulnerability classes in browsers and kernels.',
+  },
+
+  // Exercise 17 (index 16): Double Free
+  {
+    title: '17: Double Free',
+    unit: 4,
+    desc: 'What happens if you free the same block <strong>twice</strong>? The recycling list gets confused — the freed block points to itself, creating a loop. Then when you malloc, you can make the allocator return any address you want by overwriting the forward pointer.',
+    code: [
+      { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    char *a = malloc(16);', cls: '' },
+      { text: '    free(a);', cls: 'highlight vuln' },
+      { text: '    free(a);  // double free!', cls: 'highlight vuln' },
+      { text: '    char *b = malloc(16);', cls: '' },
+      { text: '    // b points to same block as a', cls: 'cmt' },
+      { text: '    // write target addr as b\'s data', cls: 'cmt' },
+      { text: '    *(void**)b = TARGET;', cls: 'highlight' },
+      { text: '    malloc(16); // returns a again', cls: '' },
+      { text: '    char *c = malloc(16);', cls: 'highlight' },
+      { text: '    // c now points to TARGET!', cls: 'cmt' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'heap-double-free',
+    vizMode: 'heap',
+    heapSize: 256,
+    showSymbols: true,
+    funcPtrAddr: 0x0804a040,
+    check(heap) { return heap.funcPtrs.handler && heap.funcPtrs.handler.current === state.symbols.win; },
+    winTitle: 'FLAG{double_free}',
+    winMsg: 'The double free created a cycle in the recycling list. You overwrote the forward pointer to point at the function pointer table. The allocator thought it was returning a valid free block, but it actually gave you control over the function pointer. Double free is a classic heap exploit primitive.',
+  },
+
+  // Exercise 18 (index 17): Heap Overflow
+  {
+    title: '18: Heap Overflow',
+    unit: 4,
+    desc: 'Just like stack overflows, heap blocks can overflow into each other. If you write past the end of block A, you overwrite block B\'s header and data. Corrupt B\'s data (which contains a function pointer) to redirect execution.',
+    code: [
+      { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+      { text: 'void normal() { printf("Normal\\n"); }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    char *a = malloc(16);', cls: '' },
+      { text: '    // b holds a function pointer at offset 0', cls: 'cmt' },
+      { text: '    void (**b)() = malloc(16);', cls: '' },
+      { text: '    *b = normal;', cls: '' },
+      { text: '    // Bug: reads too many bytes into a!', cls: 'cmt' },
+      { text: '    read(0, a, 64);', cls: 'highlight vuln' },
+      { text: '    (*b)();  // calls the function pointer', cls: 'highlight' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'heap-overflow',
+    vizMode: 'heap',
+    heapSize: 256,
+    showSymbols: true,
+    check(heap) {
+      return heap.funcPtrs.handler && heap.funcPtrs.handler.current === state.symbols.win;
+    },
+    winTitle: 'FLAG{heap_overflow}',
+    winMsg: 'You wrote past the end of block A, through B\'s header, and overwrote B\'s function pointer with win()\'s address. Heap overflows can corrupt adjacent chunks — their headers, their data, whatever comes next in memory.',
+  },
 ];
 
 const UNITS = [
   { id: 1, name: 'STACK', exercises: [0,1,2,3,4] },
   { id: 2, name: 'LOGIC', exercises: [5, 6, 7, 8, 9] },
   { id: 3, name: 'STACK II', exercises: [10, 11, 12, 13] },
-  { id: 4, name: 'HEAP', exercises: [] },
+  { id: 4, name: 'HEAP', exercises: [14, 15, 16, 17] },
   { id: 5, name: 'HEAP II', exercises: [] },
   { id: 6, name: 'FINAL', exercises: [] },
 ];
@@ -1618,11 +1753,16 @@ function renderHeap() {
     }
     chunkEl.appendChild(dataEl);
 
-    // Label
+    // Label (include name if we have one)
     const label = document.createElement('div');
     label.className = 'heap-chunk-label';
     const displayAddr = heap.baseAddr + chunk.addr;
-    label.textContent = hex8(displayAddr) + ' (' + chunk.dataSize + 'B)';
+    let chunkLabel = hex8(displayAddr) + ' (' + chunk.dataSize + 'B)';
+    if (state.heapNames) {
+      const nameEntry = Object.entries(state.heapNames).find(([, a]) => a === chunk.addr);
+      if (nameEntry) chunkLabel = nameEntry[0] + ' — ' + chunkLabel;
+    }
+    label.textContent = chunkLabel;
     chunkEl.appendChild(label);
 
     strip.appendChild(chunkEl);
@@ -1907,6 +2047,68 @@ function renderInput(ex) {
     return;
   }
 
+  if (ex.mode === 'heap-uaf') {
+    const inInput = state.heapPhase === 'input';
+    area.innerHTML = `
+      <div class="controls" id="heap-step-controls" ${inInput ? 'style="display:none"' : ''}>
+        <button class="primary" onclick="doHeapStep()">Step →</button>
+        <button onclick="doReset()">Reset</button>
+      </div>
+      <div id="heap-input-area" ${inInput ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Enter 4 hex bytes for the function pointer (little-endian address of win()):</label>
+        <textarea id="payload-input" placeholder="e.g. 50 81 04 08" rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapUafSubmit()">Call u->action()</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    builder.style.display = 'none';
+    renderHeapSymbols(syms, ex);
+    return;
+  }
+
+  if (ex.mode === 'heap-double-free') {
+    const inInput = state.heapPhase === 'input';
+    area.innerHTML = `
+      <div class="controls" id="heap-step-controls" ${inInput ? 'style="display:none"' : ''}>
+        <button class="primary" onclick="doHeapStep()">Step →</button>
+        <button onclick="doReset()">Reset</button>
+      </div>
+      <div id="heap-input-area" ${inInput ? '' : 'style="display:none"'}>
+        <label style="font-size:11px;color:var(--text-dim)">Enter the target address (where you want the allocator to return). Use the function pointer table address, then win() will be written there:</label>
+        <textarea id="payload-input" placeholder="e.g. 40 a0 04 08" rows="1"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div class="controls" style="margin-top:0.5rem">
+          <button class="primary" onclick="heapDoubleFreeSubmit()">Write & Allocate</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    builder.style.display = 'none';
+    renderHeapSymbols(syms, ex);
+    return;
+  }
+
+  if (ex.mode === 'heap-overflow') {
+    area.innerHTML = `
+      <label style="font-size:11px;color:var(--text-dim)">Enter hex bytes to write into chunk A. Overflow past A's data, through B's header, into B's data to overwrite the function pointer:</label>
+      <textarea id="payload-input" placeholder="e.g. 41 41 41 41 ... (16 bytes padding for A) ... (8 bytes for B header) ... (4 bytes win address)" rows="2"
+        style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+      <div class="controls" style="margin-top:0.5rem">
+        <button class="primary" onclick="heapOverflowSubmit()">Call (*b)()</button>
+        <button onclick="doReset()">Reset</button>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    builder.style.display = 'none';
+    renderHeapSymbols(syms, ex);
+    return;
+  }
+
   let modeHtml = '';
   if (ex.mode === 'input-hex') {
     modeHtml = `
@@ -2100,7 +2302,7 @@ function loadExercise(idx) {
     state.symbols.sigreturn = 0x080481b0;
   }
 
-  state.sim = new StackSim(ex.bufSize, retAddr, savedEbp, undefined, ex.canary);
+  state.sim = new StackSim(ex.bufSize || 16, retAddr, savedEbp, undefined, ex.canary);
 
   // Extend sim memory for exercises needing space past the return address
   let extraBytes = 0;
@@ -2125,9 +2327,46 @@ function loadExercise(idx) {
 
   // Initialize heap if exercise uses it
   state.heap = null;
+  state.heapNames = {};
+  state.heapStep = 0;
+  state.heapPhase = 'guided'; // 'guided' or 'input'
   if (ex.vizMode === 'heap' || ex.vizMode === 'both') {
     state.heap = new HeapSim(ex.heapSize || 512);
     if (ex.heapSetup) ex.heapSetup(state.heap);
+  }
+
+  // Heap exercise setup
+  if (ex.mode === 'heap-uaf' && state.heap) {
+    // malloc User, set funcPtr, keep track
+    const userAlloc = state.heap.malloc(16);
+    if (userAlloc) {
+      state.heapNames['User'] = userAlloc.addr;
+      state.heap.funcPtrs.action = { original: state.symbols.normal, current: state.symbols.normal };
+      // Write the function pointer into the chunk data
+      state.heap._writeLE(userAlloc.dataAddr, state.symbols.normal, 4);
+      for (let i = 0; i < 4; i++) state.heap.written[userAlloc.dataAddr + i] = 1;
+    }
+  }
+
+  if (ex.mode === 'heap-double-free' && state.heap) {
+    const aAlloc = state.heap.malloc(16);
+    if (aAlloc) {
+      state.heapNames['A'] = aAlloc.addr;
+    }
+    state.heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
+  }
+
+  if (ex.mode === 'heap-overflow' && state.heap) {
+    const aAlloc = state.heap.malloc(16);
+    const bAlloc = state.heap.malloc(16);
+    if (aAlloc) state.heapNames['A'] = aAlloc.addr;
+    if (bAlloc) {
+      state.heapNames['B'] = bAlloc.addr;
+      // Write normal() function pointer as first 4 bytes of B's data
+      state.heap._writeLE(bAlloc.dataAddr, state.symbols.normal, 4);
+      for (let i = 0; i < 4; i++) state.heap.written[bAlloc.dataAddr + i] = 1;
+      state.heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.normal };
+    }
   }
 
   state.stepIndex = 0;
@@ -2198,7 +2437,34 @@ function loadExercise(idx) {
     log('info', 'Use the Signal Frame Builder below to set EIP to win(), then build your payload.');
   }
 
-  if (ex.mode !== 'step') {
+  if (ex.mode === 'heap-uaf') {
+    log('info', 'A User struct has been allocated with a function pointer set to greet() (<span class="log-addr">' + hex8(state.symbols.normal) + '</span>).');
+    log('info', 'win() is at <span class="log-addr">' + hex8(state.symbols.win) + '</span> — overwrite the function pointer to jump there!');
+    log('info', 'Click Step to walk through the vulnerability, then enter your payload.');
+  }
+
+  if (ex.mode === 'heap-double-free') {
+    log('info', 'Chunk A has been allocated. We will free it twice to corrupt the recycling list.');
+    log('info', 'The function pointer table (handler) is at <span class="log-addr">' + hex8(ex.funcPtrAddr) + '</span>');
+    log('info', 'win() is at <span class="log-addr">' + hex8(state.symbols.win) + '</span>');
+    log('info', 'Click Step to walk through the double free, then enter the target address.');
+  }
+
+  if (ex.mode === 'heap-overflow') {
+    log('info', 'Two chunks are allocated side-by-side: A (your input) and B (holds a function pointer).');
+    log('info', 'B\'s function pointer is set to normal() (<span class="log-addr">' + hex8(state.symbols.normal) + '</span>).');
+    log('info', 'win() is at <span class="log-addr">' + hex8(state.symbols.win) + '</span>. Overflow from A into B to overwrite it!');
+    const aAddr = state.heapNames['A'];
+    const bAddr = state.heapNames['B'];
+    if (aAddr !== undefined && bAddr !== undefined) {
+      const aDataStart = aAddr + state.heap.HEADER_SIZE;
+      const bDataStart = bAddr + state.heap.HEADER_SIZE;
+      const distance = bDataStart - aDataStart;
+      log('info', 'A\'s data starts at offset ' + aDataStart + ', B\'s data starts at offset ' + distance + ' bytes later. You need ' + distance + ' bytes of padding, then the win() address in little-endian.');
+    }
+  }
+
+  if (ex.mode !== 'step' && !ex.mode.startsWith('heap-')) {
     log('info', 'Go-back address: ' + hex8(retAddr) + ' (where the program normally returns to after vuln finishes)');
   }
 
@@ -3035,6 +3301,20 @@ function execCurrentStep() {
 function doStep() {
   const ex = typeof state.currentEx === 'number' ? EXERCISES[state.currentEx] : null;
 
+  // Heap step-through exercises (Exercise 15)
+  if (ex && ex.mode === 'step' && ex.vizMode === 'heap') {
+    if (!ex.steps || state.stepIndex >= ex.steps.length) {
+      log('info', 'All steps complete.');
+      renderLog();
+      return;
+    }
+    const step = ex.steps[state.stepIndex];
+    executeHeapStep(step);
+    state.stepIndex++;
+    renderViz(); renderLog();
+    return;
+  }
+
   // Exercise 1 uses its own predefined step system
   if (ex && ex.mode === 'step') {
     if (!ex.steps || state.stepIndex >= ex.steps.length) {
@@ -3426,6 +3706,302 @@ function buildSigframe() {
     preview.innerHTML = `<strong>Payload:</strong> ${sim.bufSize} padding + 4 junk EBP + sigreturn addr + signal frame (${frameBytes.length} bytes)<br>` +
       `EIP = ${hex8(vals.eip)} ${vals.eip === state.symbols.win ? '<span style="color:var(--green)">points to win()</span>' : '<span style="color:var(--red)">should point to win()!</span>'}`;
   }
+}
+
+// ──────────────────────────────────────────────
+// Heap exercise helpers
+// ──────────────────────────────────────────────
+
+function renderHeapSymbols(syms, ex) {
+  if (ex.showSymbols) {
+    syms.style.display = 'block';
+    let html = '<h4>Functions In The Program</h4>';
+    for (const [name, addr] of Object.entries(state.symbols)) {
+      if (name === 'system' || name === 'binsh' || name === 'vuln' || name === 'main' || name === 'sigreturn') continue;
+      const isTarget = name === 'win';
+      const note = isTarget ? '← jump here!' : '';
+      html += `<div class="sym-row ${isTarget ? 'target' : ''}">
+        <span class="sym-name">${name}()</span>
+        <span class="sym-addr">${hex8(addr)}</span>
+        <span class="sym-note">${note}</span>
+      </div>`;
+    }
+    if (ex.funcPtrAddr) {
+      html += `<div class="sym-row target">
+        <span class="sym-name">handler (func ptr table)</span>
+        <span class="sym-addr">${hex8(ex.funcPtrAddr)}</span>
+        <span class="sym-note">← write win() here</span>
+      </div>`;
+    }
+    syms.innerHTML = html;
+  } else {
+    syms.style.display = 'none';
+  }
+}
+
+function executeHeapStep(step) {
+  const heap = state.heap;
+  if (!heap) return;
+  if (step.action === 'init') { /* nothing */ }
+  else if (step.action === 'malloc') {
+    const result = heap.malloc(step.size);
+    if (result && step.name) {
+      state.heapNames = state.heapNames || {};
+      state.heapNames[step.name] = result.addr;
+    }
+  } else if (step.action === 'free') {
+    const addr = state.heapNames[step.name];
+    if (addr !== undefined) heap.free(addr);
+  } else if (step.action === 'done') {
+    state.completed.add(state.currentEx);
+    saveProgress();
+    renderNav();
+  }
+  if (step.log) step.log.forEach(([cls, msg]) => log(cls, msg));
+  if (step.srcLine !== undefined) highlightExecLine(step.srcLine);
+}
+
+// UAF guided steps
+const UAF_STEPS = [
+  { srcLine: 9,  log: [['action', 'User *u = malloc(16) — allocated a 24-byte chunk for the User struct.']] },
+  { srcLine: 10, log: [['action', 'u->action = greet — the function pointer is set to greet() (normal behavior).']] },
+  { srcLine: 11, doFree: 'User', log: [['action', 'free(u) — the User chunk goes to the recycling list. But the program still has the pointer u!']] },
+  { srcLine: 13, doMalloc: true, log: [['action', 'char *note = malloc(16) — same size as User! The allocator recycles the freed chunk. Note now occupies the SAME memory as the old User struct.']] },
+  { done: true, log: [['info', 'Now enter the bytes to write into the note. The first 4 bytes will overwrite where the function pointer used to be. Write win()\'s address in little-endian!']] },
+];
+
+function doHeapStep() {
+  const ex = EXERCISES[state.currentEx];
+  if (!ex) return;
+
+  if (ex.mode === 'heap-uaf') {
+    if (state.heapStep >= UAF_STEPS.length) return;
+    const step = UAF_STEPS[state.heapStep];
+
+    if (step.doFree) {
+      const addr = state.heapNames[step.doFree];
+      if (addr !== undefined) state.heap.free(addr);
+    }
+    if (step.doMalloc) {
+      const result = state.heap.malloc(16);
+      if (result) {
+        state.heapNames['Note'] = result.addr;
+      }
+    }
+    if (step.log) step.log.forEach(([cls, msg]) => log(cls, msg));
+    if (step.srcLine !== undefined) highlightExecLine(step.srcLine);
+
+    state.heapStep++;
+
+    if (step.done) {
+      state.heapPhase = 'input';
+      renderInput(ex);
+    }
+
+    renderViz();
+    renderLog();
+    return;
+  }
+
+  if (ex.mode === 'heap-double-free') {
+    if (state.heapStep >= DF_STEPS.length) return;
+    const step = DF_STEPS[state.heapStep];
+
+    if (step.doFree) {
+      const addr = state.heapNames[step.doFree];
+      if (addr !== undefined) {
+        // For double free, we need to allow freeing already-freed chunks
+        if (step.doubleFree) {
+          // Force free: re-mark as allocated so free() works
+          const chunk = state.heap.chunks.get(addr);
+          if (chunk) chunk.allocated = true;
+          state.heap.free(addr);
+        } else {
+          state.heap.free(addr);
+        }
+      }
+    }
+    if (step.doMalloc) {
+      const result = state.heap.malloc(16);
+      if (result && step.name) {
+        state.heapNames[step.name] = result.addr;
+      }
+    }
+    if (step.log) step.log.forEach(([cls, msg]) => log(cls, msg));
+    if (step.srcLine !== undefined) highlightExecLine(step.srcLine);
+
+    state.heapStep++;
+
+    if (step.done) {
+      state.heapPhase = 'input';
+      renderInput(ex);
+    }
+
+    renderViz();
+    renderLog();
+    return;
+  }
+}
+
+// Double-free guided steps
+const DF_STEPS = [
+  { srcLine: 3,  log: [['action', 'char *a = malloc(16) — chunk A is allocated.']] },
+  { srcLine: 4,  doFree: 'A', log: [['action', 'free(a) — chunk A goes to the recycling list (tcache).']] },
+  { srcLine: 5,  doFree: 'A', doubleFree: true, log: [['action', 'free(a) again — DOUBLE FREE! The chunk is added to the recycling list a second time. The list now has a cycle: A → A → ...']] },
+  { srcLine: 6,  doMalloc: true, name: 'B', log: [['action', 'char *b = malloc(16) — returns chunk A from the list. But A is STILL on the list (because of the double free)!']] },
+  { done: true, log: [['info', 'Now write the target address as b\'s data. This overwrites the recycling list\'s forward pointer (fd). The next-next malloc will return whatever address you write! Use the function pointer table address in little-endian.']] },
+];
+
+function heapUafSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter a hex payload first.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length === 0) { log('info', 'Invalid hex input.'); renderLog(); return; }
+
+  const heap = state.heap;
+  const noteAddr = state.heapNames['Note'];
+  if (noteAddr === undefined) { log('error', 'Note not allocated yet. Step through first.'); renderLog(); return; }
+
+  const dataAddr = noteAddr + heap.HEADER_SIZE;
+  heap.write(dataAddr, bytes);
+
+  // The first 4 bytes overwrite the function pointer
+  const writtenPtr = heap._readLE(dataAddr, 4);
+  heap.funcPtrs.action = { original: state.symbols.normal, current: writtenPtr };
+
+  highlightExecLine(15); // u->action() line
+  log('action', 'read(0, note, 16) — wrote ' + bytes.length + ' bytes into the note (which sits in the old User memory).');
+  log('action', 'u->action() is called — the function pointer is now <span class="log-addr">' + hex8(writtenPtr) + '</span>');
+
+  const ex = EXERCISES[state.currentEx];
+  if (writtenPtr === state.symbols.win) {
+    log('success', 'The function pointer now points to win()! Executing...');
+    state.completed.add(state.currentEx);
+    saveProgress();
+    renderNav();
+    showSuccess(ex.winTitle, ex.winMsg);
+  } else {
+    const sym = Object.entries(state.symbols).find(([, a]) => a === writtenPtr);
+    if (sym) {
+      log('error', 'Called ' + sym[0] + '() — not win(). Try writing win()\'s address: ' + hex8(state.symbols.win) + ' in little-endian.');
+    } else {
+      log('error', 'Jumped to ' + hex8(writtenPtr) + ' — SEGFAULT! That\'s not a valid function. Write win()\'s address (' + hex8(state.symbols.win) + ') in little-endian.');
+    }
+  }
+
+  renderViz();
+  renderLog();
+}
+
+function heapDoubleFreeSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter a hex payload first.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length < 4) { log('info', 'Need at least 4 bytes (an address).'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+  const bAddr = state.heapNames['B'];
+  if (bAddr === undefined) { log('error', 'Step through the guided part first.'); renderLog(); return; }
+
+  const dataAddr = bAddr + heap.HEADER_SIZE;
+  // Write the user's bytes into B's data (overwrites fd pointer in the tcache)
+  heap.write(dataAddr, bytes);
+  const targetAddr = heap._readLE(dataAddr, 4);
+
+  log('action', '*(void**)b = <span class="log-addr">' + hex8(targetAddr) + '</span> — overwrote the forward pointer in the recycling list.');
+  highlightExecLine(9);
+
+  // malloc(16) — returns A again (from the cycle), consuming one entry
+  const dummy = heap.malloc(16);
+  log('action', 'malloc(16) — returns the chunk from the list (consuming the cycle entry).');
+  highlightExecLine(10);
+
+  // Now the tcache's next entry should be our target address.
+  // We simulate this: the next malloc returns our target address
+  log('action', 'malloc(16) — the allocator follows the forward pointer to <span class="log-addr">' + hex8(targetAddr) + '</span>...');
+  highlightExecLine(11);
+
+  if (targetAddr === ex.funcPtrAddr) {
+    // The allocator returned the function pointer table address!
+    // Write win() there
+    heap.funcPtrs.handler = { original: state.symbols.normal, current: state.symbols.win };
+    log('success', 'The allocator returned the function pointer table address! Writing win() there...');
+    log('success', 'handler() now points to win()! Executing...');
+    state.completed.add(state.currentEx);
+    saveProgress();
+    renderNav();
+    showSuccess(ex.winTitle, ex.winMsg);
+  } else {
+    log('error', 'The allocator returned <span class="log-addr">' + hex8(targetAddr) + '</span> — that\'s not the function pointer table (<span class="log-addr">' + hex8(ex.funcPtrAddr) + '</span>). Write the table address in little-endian!');
+  }
+
+  renderViz();
+  renderLog();
+}
+
+function heapOverflowSubmit() {
+  const ta = document.getElementById('payload-input');
+  if (!ta || !ta.value.trim()) { log('info', 'Enter a hex payload first.'); renderLog(); return; }
+
+  const bytes = hexStrToBytes(ta.value);
+  if (bytes.length === 0) { log('info', 'Invalid hex input.'); renderLog(); return; }
+
+  const heap = state.heap;
+  const ex = EXERCISES[state.currentEx];
+  const aAddr = state.heapNames['A'];
+  const bAddr = state.heapNames['B'];
+  if (aAddr === undefined || bAddr === undefined) { log('error', 'Chunks not set up.'); renderLog(); return; }
+
+  const aDataAddr = aAddr + heap.HEADER_SIZE;
+  const bDataAddr = bAddr + heap.HEADER_SIZE;
+
+  // Write all bytes starting at A's data — this can overflow into B
+  heap.write(aDataAddr, bytes);
+  highlightExecLine(9);
+
+  const aDataSize = 16; // A has 16 bytes of data
+  const headerSize = heap.HEADER_SIZE;
+  const overflowIntoB = bytes.length > aDataSize + headerSize;
+
+  if (bytes.length <= aDataSize) {
+    log('action', 'Wrote ' + bytes.length + ' bytes into chunk A — no overflow. You need more bytes to reach chunk B!');
+    log('info', 'A has ' + aDataSize + ' bytes of data, then ' + headerSize + ' bytes of B\'s header, then B\'s data (function pointer). You need at least ' + (aDataSize + headerSize + 4) + ' bytes total.');
+  } else if (!overflowIntoB) {
+    log('action', 'Wrote ' + bytes.length + ' bytes — overflowed into B\'s header but not its data yet. Keep going!');
+    log('info', 'You need ' + (aDataSize + headerSize) + ' bytes to reach B\'s data area where the function pointer lives.');
+  } else {
+    log('action', 'Wrote ' + bytes.length + ' bytes — OVERFLOW! Bytes spilled through B\'s header into B\'s data.');
+
+    // Read what landed at B's data (the function pointer)
+    const newPtr = heap._readLE(bDataAddr, 4);
+    heap.funcPtrs.handler = { original: state.symbols.normal, current: newPtr };
+
+    log('action', '(*b)() is called — the function pointer is now <span class="log-addr">' + hex8(newPtr) + '</span>');
+
+    if (newPtr === state.symbols.win) {
+      log('success', 'The function pointer points to win()! Executing...');
+      state.completed.add(state.currentEx);
+      saveProgress();
+      renderNav();
+      showSuccess(ex.winTitle, ex.winMsg);
+    } else {
+      const sym = Object.entries(state.symbols).find(([, a]) => a === newPtr);
+      if (sym) {
+        log('error', 'Called ' + sym[0] + '() — not win(). Write win()\'s address (' + hex8(state.symbols.win) + ') at the right offset.');
+      } else {
+        log('error', 'Jumped to ' + hex8(newPtr) + ' — SEGFAULT! The function pointer needs to be win()\'s address (' + hex8(state.symbols.win) + ') in little-endian, at the correct offset.');
+      }
+    }
+  }
+
+  // Mark overflow bytes visually
+  heap.markRegion(aAddr, bAddr + heap.chunks.get(bAddr).size);
+
+  renderViz();
+  renderLog();
 }
 
 function doReset() {
