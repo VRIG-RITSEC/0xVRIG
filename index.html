@@ -638,11 +638,47 @@ const EXERCISES = [
     winTitle: 'FLAG{canary_bypassed}',
     winMsg: 'You read the leaked secret value and carefully placed it in your payload so the tripwire stayed intact — while still overwriting the go-back address. Sneaky! This is how real attackers bypass stack canaries.',
   },
+  {
+    title: '06: Integer Overflow',
+    unit: 2,
+    desc: 'The program adds a header size (64) to your input length. But what happens when your number is so big that the addition <strong>wraps around</strong> past the maximum value? The buffer ends up tiny, but the program still reads your full input — overflow!',
+    code: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void process(unsigned int user_len) {', cls: '', fn: true },
+      { text: '    unsigned int total = user_len + 64;', cls: 'highlight vuln' },
+      { text: '    char buf[total];', cls: '' },
+      { text: '    read_input(buf, user_len);', cls: 'highlight' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    unsigned int len;', cls: '' },
+      { text: '    scanf("%u", &len);', cls: '' },
+      { text: '    process(len);', cls: '' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'input-int-overflow',
+    vizMode: 'stack',
+    bufSize: 16,
+    showSymbols: true,
+    showBuilder: true,
+    aslr: false,
+    intOverflow: true,
+    headerSize: 64,
+    check(sim) {
+      return sim.getRetAddr() === state.symbols.win;
+    },
+    winTitle: 'FLAG{integer_wrap}',
+    winMsg: 'The math wrapped around! A huge number + 64 became a tiny number, so the buffer was too small. Your input overflowed it and hijacked the go-back address. This is how integer overflows lead to memory corruption.',
+  },
 ];
 
 const UNITS = [
   { id: 1, name: 'STACK', exercises: [0,1,2,3,4] },
-  { id: 2, name: 'LOGIC', exercises: [] },
+  { id: 2, name: 'LOGIC', exercises: [5] },
   { id: 3, name: 'STACK II', exercises: [] },
   { id: 4, name: 'HEAP', exercises: [] },
   { id: 5, name: 'HEAP II', exercises: [] },
@@ -908,6 +944,36 @@ function renderInput(ex) {
   const area = document.getElementById('input-area');
   const builder = document.getElementById('payload-builder');
   const syms = document.getElementById('symbols-table');
+
+  if (ex.mode === 'input-int-overflow') {
+    const headerSize = ex.headerSize || 64;
+    area.innerHTML = `
+      <div style="margin-bottom:0.75rem">
+        <label style="font-size:11px;color:var(--text-dim)">Enter the length value (unsigned 32-bit integer):</label>
+        <div style="display:flex;gap:0.5rem;align-items:center;margin-top:0.35rem">
+          <input id="int-input" type="text" placeholder="e.g. 4294967232"
+            style="background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;width:16em"
+            oninput="onIntOverflowInput()">
+          <span style="color:var(--text-dim)">+ ${headerSize} =</span>
+          <span id="int-result" style="color:var(--green);font-weight:bold">—</span>
+        </div>
+        <div id="int-overflow-indicator" style="font-size:11px;margin-top:0.35rem;min-height:1.5em"></div>
+      </div>
+      <div id="int-overflow-payload" style="display:none">
+        <label style="font-size:11px;color:var(--text-dim)">Now craft your payload (hex bytes) — the buffer is tiny but the program reads your full length:</label>
+        <textarea id="payload-input" placeholder="Enter hex bytes: 41 41 41 41 ..." oninput="onPayloadInput()" rows="2"
+          style="width:100%;background:#0a0a0a;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:13px;padding:0.5rem;resize:none;margin-top:0.35rem"></textarea>
+        <div id="step-counter" style="font-size:11px;color:var(--text-dim);margin-top:0.5rem;min-height:1.2em"></div>
+        <div class="controls" style="margin-top:0.25rem">
+          <button class="primary" onclick="doStep()">Step →</button>
+          <button onclick="doRunAll()">Run ▶▶</button>
+          <button onclick="doReset()">Reset</button>
+        </div>
+      </div>
+    `;
+    state.inputMode = 'hex';
+    return;
+  }
 
   if (ex.mode === 'step') {
     area.innerHTML = `
@@ -1241,6 +1307,47 @@ function onPayloadInput() {
   renderStack();
 }
 
+function onIntOverflowInput() {
+  const input = document.getElementById('int-input');
+  const result = document.getElementById('int-result');
+  const indicator = document.getElementById('int-overflow-indicator');
+  const payloadDiv = document.getElementById('int-overflow-payload');
+  if (!input || !result) return;
+
+  const val = parseInt(input.value);
+  if (isNaN(val) || val < 0) {
+    result.textContent = '—';
+    indicator.innerHTML = '';
+    if (payloadDiv) payloadDiv.style.display = 'none';
+    return;
+  }
+
+  const ex = EXERCISES[state.currentEx];
+  const headerSize = (ex && ex.headerSize) || 64;
+  const total = (val + headerSize) >>> 0;
+  const wrapped = val > 0 && total < val;
+
+  result.textContent = '0x' + total.toString(16).toUpperCase().padStart(8, '0');
+  result.style.color = wrapped ? 'var(--red)' : 'var(--green)';
+
+  if (wrapped) {
+    const bufSize = Math.max(total, 4);  // minimum 4 bytes to be usable
+    indicator.innerHTML = '<span style="color:var(--red)">⚠ WRAP! ' + val + ' + ' + headerSize +
+      ' overflows past 0xFFFFFFFF → buffer is only ' + bufSize + ' bytes!</span>';
+    if (payloadDiv) payloadDiv.style.display = 'block';
+    const retAddr = retAddrInMain();
+    state.sim = new StackSim(bufSize, retAddr, 0xbfff0200);
+    state.sim.intOverflowLen = val;
+    state.execSteps = null;
+    state.execIndex = 0;
+    state.inputMode = 'hex';
+    renderStack();
+  } else {
+    indicator.innerHTML = '<span style="color:var(--text-dim)">No overflow — buffer is ' + total + ' bytes.</span>';
+    if (payloadDiv) payloadDiv.style.display = 'none';
+  }
+}
+
 // ──────────────────────────────────────────────
 // Unified step-through execution engine
 // ──────────────────────────────────────────────
@@ -1262,7 +1369,9 @@ function findCodeLine(ex, pattern) {
 }
 
 function findVulnClose(ex) {
-  const start = findCodeLine(ex, 'void vuln');
+  const fnLine = ex.code.find(l => l.fn);
+  const fnName = fnLine ? (fnLine.text.match(/void\s+(\w+)/)||[])[1] || 'vuln' : 'vuln';
+  const start = findCodeLine(ex, 'void ' + fnName);
   if (start < 0) return -1;
   for (let i = start + 1; i < ex.code.length; i++) {
     if (ex.code[i].text.trim() === '}') return i;
@@ -1284,11 +1393,39 @@ function generateExecSteps(ex, bytes) {
   const steps = [];
   const WORD = 4;
 
-  // 1. CALL vuln
+  // Integer overflow preamble steps
+  if (ex.intOverflow) {
+    const userLen = sim.intOverflowLen || bytes.length;
+    const headerSize = ex.headerSize || 64;
+    const total = (userLen + headerSize) >>> 0;
+
+    steps.push({
+      label: 'scanf — read user length',
+      srcLine: findCodeLine(ex, 'scanf'),
+      logs: [['action', 'scanf("%u", &len) → user entered: ' + userLen]],
+      action() {}
+    });
+    steps.push({
+      label: 'compute total = len + ' + headerSize,
+      srcLine: findCodeLine(ex, 'total = user_len'),
+      logs: [
+        ['action', 'total = ' + userLen + ' + ' + headerSize + ' = ...'],
+        ['error', '⚠ Integer overflow! Result wraps to ' + total + ' (0x' + total.toString(16).toUpperCase().padStart(8, '0') + ')'],
+      ],
+      action() {}
+    });
+  }
+
+  // Detect function name for this exercise
+  const fnLine = ex.code.find(l => l.fn);
+  const fnName = fnLine ? (fnLine.text.match(/void\s+(\w+)/)||[])[1] || 'vuln' : 'vuln';
+  const callPattern = fnName === 'vuln' ? '    vuln();' : '    ' + fnName + '(';
+
+  // 1. CALL function
   steps.push({
-    label: 'CALL vuln',
-    srcLine: findCodeLine(ex, '    vuln();'),
-    logs: [['action', '▶ Calling vuln() — saving go-back address <span class="log-addr">' + hex8(sim.origRetAddr) + '</span>']],
+    label: 'CALL ' + fnName,
+    srcLine: findCodeLine(ex, callPattern),
+    logs: [['action', '▶ Calling ' + fnName + '() — saving go-back address <span class="log-addr">' + hex8(sim.origRetAddr) + '</span>']],
     action(sim) {
       sim.clearBlank();
       sim._writeLE(sim.bufSize + sim.canarySize + 4, sim.origRetAddr, 4);
@@ -1299,7 +1436,7 @@ function generateExecSteps(ex, bytes) {
   // 2. push EBP
   steps.push({
     label: 'save bookmark (push EBP)',
-    srcLine: findCodeLine(ex, 'void vuln'),
+    srcLine: findCodeLine(ex, 'void ' + fnName),
     logs: [['action', 'Save bookmark to previous frame <span class="log-addr">' + hex8(sim.origSavedEbp) + '</span> (so the program can clean up later)']],
     action(sim) {
       sim._writeLE(sim.bufSize + sim.canarySize, sim.origSavedEbp, 4);
@@ -1337,7 +1474,8 @@ function generateExecSteps(ex, bytes) {
   }
 
   // 5. gets(buf) — write word by word
-  const getsLine = findCodeLine(ex, 'gets');
+  let getsLine = findCodeLine(ex, 'gets');
+  if (getsLine < 0) getsLine = findCodeLine(ex, 'read_input');
   const totalBytes = Math.min(bytes.length, sim.totalSize);
 
   for (let off = 0; off < totalBytes; off += WORD) {
