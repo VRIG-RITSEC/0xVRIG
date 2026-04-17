@@ -1,0 +1,1614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stack Overflow Lab</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0c0c0c;
+  --panel-bg: #141414;
+  --panel-border: #333;
+  --text: #ddd;
+  --text-dim: #999;
+  --green: #4ec9b0;
+  --blue: #569cd6;
+  --amber: #ce9178;
+  --red: #f44747;
+  --yellow: #dcdcaa;
+  --purple: #c586c0;
+  --comment: #7fbf68;
+  --font: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; }
+
+#app {
+  display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+}
+
+header {
+  display: flex; align-items: center; gap: 1rem; padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--panel-border); background: var(--panel-bg);
+  flex-shrink: 0;
+}
+header h1 { font-size: 14px; color: var(--green); font-weight: normal; white-space: nowrap; }
+nav { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+nav button {
+  background: transparent; border: 1px solid var(--panel-border); color: var(--text-dim);
+  padding: 0.25rem 0.75rem; font-family: var(--font); font-size: 11px; cursor: pointer;
+  transition: all 0.15s;
+}
+nav button:hover:not(:disabled) { border-color: var(--text-dim); color: var(--text); }
+nav button.active { border-color: var(--green); color: var(--green); }
+nav button.completed { border-color: var(--comment); color: var(--comment); }
+nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+main {
+  flex: 1; display: grid; overflow: hidden;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 1px; background: var(--panel-border);
+}
+
+.panel {
+  background: var(--panel-bg); display: flex; flex-direction: column; overflow: hidden;
+}
+.panel-hdr {
+  padding: 0.35rem 0.75rem; font-size: 11px; color: var(--text-dim);
+  border-bottom: 1px solid var(--panel-border); flex-shrink: 0;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.panel-body { flex: 1; overflow-y: auto; padding: 0.75rem; }
+
+/* Source panel */
+#source-panel { grid-column: 1; grid-row: 1; }
+#source-code {
+  white-space: pre; line-height: 1.6; tab-size: 4;
+}
+.src-line { display: block; padding: 0 0.5rem; position: relative; }
+.src-line .ln { color: var(--text-dim); display: inline-block; width: 2.5em; text-align: right; margin-right: 1em; user-select: none; }
+.src-line.highlight { background: rgba(78, 201, 176, 0.1); border-left: 2px solid var(--green); }
+.src-line.executing { background: rgba(220, 220, 170, 0.12); border-left: 2px solid var(--yellow); }
+.src-line.executing .ln::before { content: '▶'; color: var(--yellow); position: absolute; left: 0.15rem; font-size: 10px; }
+.src-kw { color: var(--blue); }
+.src-type { color: var(--blue); }
+.src-fn { color: var(--yellow); }
+.src-str { color: var(--amber); }
+.src-cmt { color: var(--comment); font-style: italic; }
+.src-vuln { color: var(--red); text-decoration: underline wavy var(--red); }
+
+/* Stack panel */
+#stack-panel { grid-column: 2; grid-row: 1; }
+#stack-viz { font-size: 12px; }
+
+.stack-row {
+  display: flex; align-items: center; padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  transition: background 0.3s;
+}
+.stack-row.region-start { border-top: 1px solid var(--panel-border); }
+.stack-addr { color: var(--text-dim); width: 8em; text-align: right; padding-right: 0.75em; flex-shrink: 0; font-size: 11px; }
+.stack-bytes { display: flex; gap: 2px; flex-shrink: 0; }
+.stack-byte {
+  width: 2.2em; text-align: center; padding: 2px 0; border-radius: 2px;
+  transition: all 0.2s; font-size: 12px;
+}
+.stack-byte.empty { color: var(--text-dim); }
+.stack-ascii { color: var(--text-dim); padding-left: 0.75em; width: 5em; flex-shrink: 0; font-size: 11px; }
+.stack-label { color: var(--text-dim); padding-left: 0.75em; font-size: 11px; white-space: nowrap; }
+
+.region-buffer .stack-byte { background: rgba(78, 201, 176, 0.15); color: var(--green); }
+.region-canary .stack-byte { background: rgba(197, 134, 192, 0.15); color: var(--purple); }
+.region-ebp .stack-byte { background: rgba(86, 156, 214, 0.15); color: var(--blue); }
+.region-ret .stack-byte { background: rgba(206, 145, 120, 0.15); color: var(--amber); }
+
+.stack-byte.overflow {
+  background: rgba(244, 71, 71, 0.3) !important; color: var(--red) !important;
+  animation: pulse 0.6s ease;
+}
+.stack-byte.just-written { animation: flash 0.4s ease; }
+.stack-byte.current {
+  outline: 2px solid var(--yellow); outline-offset: -1px;
+  animation: flash 0.3s ease;
+}
+
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes flash { 0% { background: rgba(255,255,255,0.4); } 100% {} }
+
+/* Input panel */
+#input-panel { grid-column: 1; grid-row: 2; }
+#input-area { margin-bottom: 0.75rem; }
+#input-area label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 0.35rem; }
+#payload-input {
+  width: 100%; background: #0a0a0a; border: 1px solid var(--panel-border); color: var(--text);
+  font-family: var(--font); font-size: 13px; padding: 0.5rem; resize: none; min-height: 2.5em;
+}
+#payload-input:focus { outline: none; border-color: var(--green); }
+#payload-input::placeholder { color: var(--text-dim); }
+
+.input-mode-toggle {
+  display: flex; gap: 0.5rem; margin-bottom: 0.5rem;
+}
+.input-mode-toggle button {
+  background: transparent; border: 1px solid var(--panel-border); color: var(--text-dim);
+  font-family: var(--font); font-size: 11px; padding: 0.2rem 0.5rem; cursor: pointer;
+}
+.input-mode-toggle button.active { border-color: var(--green); color: var(--green); }
+
+.controls {
+  display: flex; gap: 0.5rem; flex-wrap: wrap;
+}
+.controls button {
+  background: transparent; border: 1px solid var(--panel-border); color: var(--text);
+  font-family: var(--font); font-size: 12px; padding: 0.35rem 1rem; cursor: pointer;
+  transition: all 0.15s;
+}
+.controls button:hover:not(:disabled) { border-color: var(--green); color: var(--green); }
+.controls button.primary { border-color: var(--green); color: var(--green); }
+.controls button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Payload builder */
+#payload-builder {
+  margin-top: 0.75rem; padding: 0.5rem; border: 1px solid var(--panel-border);
+  font-size: 11px;
+}
+#payload-builder h4 { color: var(--text-dim); font-weight: normal; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.builder-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+.builder-row label { color: var(--text-dim); width: 10em; }
+.builder-row input {
+  background: #0a0a0a; border: 1px solid var(--panel-border); color: var(--text);
+  font-family: var(--font); font-size: 11px; padding: 0.25rem 0.4rem; width: 10em;
+}
+.builder-row input:focus { outline: none; border-color: var(--green); }
+.builder-row .hint { color: var(--text-dim); font-size: 10px; }
+#built-payload { color: var(--yellow); word-break: break-all; margin-top: 0.5rem; padding: 0.35rem; background: #0a0a0a; min-height: 1.5em; }
+
+/* Hex calculator */
+#hex-calc {
+  margin-top: 0.75rem; padding: 0.5rem; border: 1px solid var(--panel-border);
+  font-size: 11px;
+}
+#hex-calc h4 { color: var(--text-dim); font-weight: normal; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.calc-row { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.35rem; flex-wrap: wrap; }
+.calc-row input {
+  background: #0a0a0a; border: 1px solid var(--panel-border); color: var(--text);
+  font-family: var(--font); font-size: 12px; padding: 0.25rem 0.4rem; width: 10em;
+}
+.calc-row input:focus { outline: none; border-color: var(--green); }
+.calc-op { color: var(--yellow); font-size: 14px; font-weight: bold; width: 1.5em; text-align: center; }
+.calc-eq { color: var(--green); font-size: 14px; font-weight: bold; width: 1.5em; text-align: center; }
+#calc-result {
+  color: var(--green); font-size: 12px; font-weight: bold; padding: 0.25rem 0.4rem;
+  background: #0a0a0a; border: 1px solid var(--green); min-width: 10em; display: inline-block;
+}
+.calc-hint { color: var(--text-dim); font-size: 10px; margin-top: 0.25rem; }
+
+/* Symbols table */
+#symbols-table { margin-top: 0.75rem; font-size: 11px; }
+#symbols-table h4 { color: var(--text-dim); font-weight: normal; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.sym-row { display: flex; gap: 1rem; padding: 0.15rem 0; }
+.sym-name { color: var(--yellow); width: 8em; }
+.sym-addr { color: var(--amber); }
+.sym-note { color: var(--text-dim); }
+.sym-row.target .sym-name { color: var(--green); }
+.sym-row.target .sym-addr { color: var(--green); }
+
+/* Log panel */
+#log-panel { grid-column: 2; grid-row: 2; }
+#exec-log { font-size: 12px; line-height: 1.6; }
+.log-entry { padding: 0.1rem 0; border-bottom: 1px solid rgba(255,255,255,0.02); }
+.log-info { color: var(--text-dim); }
+.log-action { color: var(--text); }
+.log-warn { color: var(--amber); }
+.log-error { color: var(--red); }
+.log-success { color: var(--green); font-weight: bold; }
+.log-addr { color: var(--amber); }
+.log-label { color: var(--text-dim); font-size: 10px; display: inline; margin-left: 0.5em; }
+
+/* Exercise description */
+#exercise-desc {
+  padding: 0.5rem 0.75rem; font-size: 12px; line-height: 1.5;
+  border-bottom: 1px solid var(--panel-border); flex-shrink: 0;
+  color: var(--text); background: rgba(78, 201, 176, 0.03);
+}
+#exercise-desc strong { color: var(--green); font-weight: normal; }
+
+/* Sandbox controls */
+.sandbox-controls {
+  display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem;
+  padding: 0.5rem; border: 1px solid var(--panel-border);
+}
+.sandbox-controls label { font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 0.4rem; }
+.sandbox-controls input[type="range"] { width: 80px; }
+.sandbox-controls input[type="checkbox"] { accent-color: var(--green); }
+
+/* Success banner */
+#success-banner {
+  display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: #111; border: 2px solid var(--green); padding: 2rem 3rem;
+  text-align: center; z-index: 100; box-shadow: 0 0 60px rgba(78,201,176,0.2);
+}
+#success-banner.show { display: block; animation: fadeIn 0.3s ease; }
+#success-banner h2 { color: var(--green); font-size: 16px; margin-bottom: 0.5rem; }
+#success-banner p { color: var(--text); font-size: 13px; }
+#success-banner button {
+  margin-top: 1rem; background: transparent; border: 1px solid var(--green); color: var(--green);
+  font-family: var(--font); font-size: 12px; padding: 0.35rem 1rem; cursor: pointer;
+}
+@keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+
+/* CRT scanline overlay */
+.crt::after {
+  content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 1px, transparent 1px, transparent 3px);
+  pointer-events: none; z-index: 1000;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--panel-bg); }
+::-webkit-scrollbar-thumb { background: var(--panel-border); }
+</style>
+</head>
+<body class="crt">
+<div id="app">
+  <header>
+    <h1>// STACK OVERFLOW LAB</h1>
+    <nav id="exercise-nav"></nav>
+  </header>
+  <main>
+    <div class="panel" id="source-panel">
+      <div class="panel-hdr">source.c</div>
+      <div id="exercise-desc"></div>
+      <div class="panel-body"><div id="source-code"></div></div>
+    </div>
+    <div class="panel" id="stack-panel">
+      <div class="panel-hdr">stack <span id="stack-info"></span></div>
+      <div class="panel-body"><div id="stack-viz"></div></div>
+    </div>
+    <div class="panel" id="input-panel">
+      <div class="panel-hdr">input</div>
+      <div class="panel-body">
+        <div id="input-area"></div>
+        <div id="payload-builder" style="display:none"></div>
+        <div id="hex-calc" style="display:none"></div>
+        <div id="symbols-table" style="display:none"></div>
+      </div>
+    </div>
+    <div class="panel" id="log-panel">
+      <div class="panel-hdr">execution log</div>
+      <div class="panel-body"><div id="exec-log"></div></div>
+    </div>
+  </main>
+</div>
+<div id="success-banner">
+  <h2 id="success-title"></h2>
+  <p id="success-msg"></p>
+  <button onclick="dismissSuccess()">Continue</button>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// Stack Simulator
+// ──────────────────────────────────────────────
+class StackSim {
+  constructor(bufSize, retAddr, savedEbp, baseAddr, useCanary) {
+    this.bufSize = bufSize;
+    this.canarySize = useCanary ? 4 : 0;
+    this.ebpSize = 4;
+    this.retSize = 4;
+    this.totalSize = bufSize + this.canarySize + this.ebpSize + this.retSize;
+    this.baseAddr = baseAddr || 0xbfff0100;
+    this.memory = new Uint8Array(this.totalSize);
+    this.written = new Uint8Array(this.totalSize);
+    this.overflowAt = new Uint8Array(this.totalSize);
+    this.inputLen = 0;
+    this.useCanary = !!useCanary;
+
+    this.origRetAddr = retAddr;
+    this.origSavedEbp = savedEbp;
+    this.canaryValue = 0;
+    if (this.useCanary) {
+      this.canaryValue = (Math.random() * 0xffffffff) >>> 0;
+      this._writeLE(this.bufSize, this.canaryValue, 4);
+    }
+    this._writeLE(this.bufSize + this.canarySize, savedEbp, 4);
+    this._writeLE(this.bufSize + this.canarySize + 4, retAddr, 4);
+    this.written.fill(0);
+  }
+
+  _writeLE(offset, value, size) {
+    for (let i = 0; i < size; i++) {
+      this.memory[offset + i] = (value >>> (i * 8)) & 0xff;
+    }
+  }
+
+  _readLE(offset, size) {
+    let v = 0;
+    for (let i = size - 1; i >= 0; i--) {
+      v = (v * 256) + this.memory[offset + i];
+    }
+    return v >>> 0;
+  }
+
+  writeInput(bytes) {
+    this.inputLen = bytes.length;
+    if (this.useCanary) this._writeLE(this.bufSize, this.canaryValue, 4);
+    this._writeLE(this.bufSize + this.canarySize, this.origSavedEbp, 4);
+    this._writeLE(this.bufSize + this.canarySize + 4, this.origRetAddr, 4);
+    this.written.fill(0);
+    this.overflowAt.fill(0);
+
+    for (let i = 0; i < bytes.length && i < this.totalSize; i++) {
+      this.memory[i] = bytes[i];
+      this.written[i] = 1;
+      if (i >= this.bufSize) {
+        this.overflowAt[i] = 1;
+      }
+    }
+  }
+
+  resetForInput() {
+    if (this.useCanary) this._writeLE(this.bufSize, this.canaryValue, 4);
+    this._writeLE(this.bufSize + this.canarySize, this.origSavedEbp, 4);
+    this._writeLE(this.bufSize + this.canarySize + 4, this.origRetAddr, 4);
+    this.written.fill(0);
+    this.overflowAt.fill(0);
+    this.inputLen = 0;
+    this.hlStart = -1;
+    this.hlEnd = -1;
+  }
+
+  clearBlank() {
+    this.memory.fill(0);
+    this.written.fill(0);
+    this.overflowAt.fill(0);
+    this.hlStart = -1;
+    this.hlEnd = -1;
+  }
+
+  writeWord(offset, bytes) {
+    for (let i = 0; i < bytes.length && (offset + i) < this.totalSize; i++) {
+      this.memory[offset + i] = bytes[i];
+      this.written[offset + i] = 1;
+      if ((offset + i) >= this.bufSize) this.overflowAt[offset + i] = 1;
+    }
+    this.inputLen = Math.max(this.inputLen, offset + bytes.length);
+    this.hlStart = offset;
+    this.hlEnd = offset + bytes.length;
+  }
+
+  markRegion(start, end) {
+    for (let i = start; i < end && i < this.totalSize; i++) this.written[i] = 1;
+    this.hlStart = start;
+    this.hlEnd = end;
+  }
+
+  clearHighlight() { this.hlStart = -1; this.hlEnd = -1; }
+
+  getRetAddr() { return this._readLE(this.bufSize + this.canarySize + 4, 4); }
+  getSavedEbp() { return this._readLE(this.bufSize + this.canarySize, 4); }
+  getCanary() { return this.useCanary ? this._readLE(this.bufSize, 4) : null; }
+  canaryIntact() { return !this.useCanary || this.getCanary() === this.canaryValue; }
+
+  regionOf(byteIndex) {
+    if (byteIndex < this.bufSize) return 'buffer';
+    if (this.useCanary && byteIndex < this.bufSize + this.canarySize) return 'canary';
+    if (byteIndex < this.bufSize + this.canarySize + this.ebpSize) return 'ebp';
+    return 'ret';
+  }
+}
+
+// ──────────────────────────────────────────────
+// Hex/address helpers
+// ──────────────────────────────────────────────
+function hex8(v) { return '0x' + (v >>> 0).toString(16).padStart(8, '0'); }
+function hex2(v) { return (v & 0xff).toString(16).padStart(2, '0'); }
+function toAscii(v) { return (v >= 0x20 && v <= 0x7e) ? String.fromCharCode(v) : '.'; }
+function addrToLE(addrStr) {
+  let v = parseInt(addrStr, 16);
+  if (isNaN(v)) return null;
+  return [(v >>> 0) & 0xff, (v >>> 8) & 0xff, (v >>> 16) & 0xff, (v >>> 24) & 0xff];
+}
+function hexStrToBytes(str) {
+  const clean = str.replace(/\s+/g, '').replace(/^0x/i, '');
+  const bytes = [];
+  for (let i = 0; i < clean.length; i += 2) {
+    const b = parseInt(clean.substr(i, 2), 16);
+    if (isNaN(b)) break;
+    bytes.push(b);
+  }
+  return bytes;
+}
+function strToBytes(str) {
+  return Array.from(str).map(c => c.charCodeAt(0) & 0xff);
+}
+
+// ──────────────────────────────────────────────
+// State
+// ──────────────────────────────────────────────
+const state = {
+  currentEx: 0,
+  sim: null,
+  completed: new Set(),
+  logMessages: [],
+  inputMode: 'text',
+  stepIndex: 0,
+  symbols: {},
+  aslrBase: 0,
+  running: false,
+  execSteps: null,
+  execIndex: 0,
+};
+
+// ──────────────────────────────────────────────
+// Exercises
+// ──────────────────────────────────────────────
+const BASE_SYMBOLS = {
+  main:   0x08048000,
+  vuln:   0x08048054,
+  win:    0x08048150,
+  normal: 0x080480a0,
+};
+
+function retAddrInMain() { return (state.symbols.main || BASE_SYMBOLS.main) + 0x25; }
+
+const EXERCISES = [
+  {
+    title: '01: The Stack Frame',
+    desc: 'Watch how a function call sets up memory. Click <strong>Step</strong> to see each piece get placed on the stack — the computer saves where to go back to (return address), saves a bookmark to the previous frame, then makes room for local variables.',
+    code: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void vuln() {', cls: '', fn: true },
+      { text: '    char buf[16];', cls: 'highlight' },
+      { text: '    // memory layout on the stack:', cls: 'cmt' },
+      { text: '    // [buf 16 bytes] [saved bookmark] [go-back address]', cls: 'cmt' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    vuln();', cls: 'highlight' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'step',
+    bufSize: 16,
+    showSymbols: false,
+    showBuilder: false,
+    aslr: false,
+    steps: [
+      { region: 'none', log: ['info', 'main() is about to call vuln()...'] },
+      { region: 'ret', log: ['action', 'The computer saves the go-back address so it knows where to return after vuln() finishes'] },
+      { region: 'ebp', log: ['action', 'Save a bookmark to the previous frame (saved EBP) — used to clean up later'] },
+      { region: 'buffer', log: ['action', 'Make room for buf[] — 16 bytes of space for our input'] },
+      { region: 'all', log: ['info', 'Done! The stack now has: our buffer (green), the saved bookmark (blue), and the go-back address (orange). The go-back address is the key — it controls where the program goes next.'] },
+    ],
+    check() { return false; },
+  },
+  {
+    title: '02: The Overflow',
+    desc: 'This function reads your input with <strong>gets()</strong> — a dangerous function that doesn\'t check how much you type. Fill the 16-byte buffer, then <strong>keep typing</strong>. Watch what happens when your input spills into the saved bookmark and go-back address above it.',
+    code: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void vuln() {', cls: '', fn: true },
+      { text: '    char buf[16];', cls: '' },
+      { text: '    gets(buf);', cls: 'highlight vuln' },
+      { text: '    printf("You entered: %s\\n", buf);', cls: '' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    printf("Enter your name: ");', cls: '' },
+      { text: '    vuln();', cls: '' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'input-text',
+    bufSize: 16,
+    showSymbols: false,
+    showBuilder: false,
+    aslr: false,
+    check(sim) {
+      const ret = sim.getRetAddr();
+      return ret !== sim.origRetAddr && !Object.values(state.symbols).includes(ret);
+    },
+    winTitle: 'Crash! Segmentation Fault',
+    winMsg: 'The program crashed because you overwrote the go-back address with garbage. The computer tried to jump to a nonsense location and exploded. Nice work — in exercise 3, you\'ll control WHERE it jumps instead of just crashing it.',
+  },
+  {
+    title: '03: Hijack Execution',
+    desc: 'Now instead of crashing, make the program jump to <strong>win()</strong>. Use the payload builder to craft your input: 16 bytes of filler (fills the buffer), 4 bytes of junk (overwrites saved bookmark), then the address of win() written <strong>backwards</strong> (little-endian — the least significant byte goes first).',
+    code: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void win() {', cls: '' },
+      { text: '    printf("FLAG{you_own_the_eip}\\n");', cls: '' },
+      { text: '    // you redirected execution here!', cls: 'cmt' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void vuln() {', cls: '', fn: true },
+      { text: '    char buf[16];', cls: '' },
+      { text: '    gets(buf);', cls: 'highlight vuln' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    vuln();', cls: '' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'input-hex',
+    bufSize: 16,
+    showSymbols: true,
+    showBuilder: true,
+    aslr: false,
+    check(sim) {
+      return sim.getRetAddr() === state.symbols.win;
+    },
+    winTitle: 'FLAG{you_own_the_eip}',
+    winMsg: 'You made the program run a function it was never supposed to call! In a real attack, this is how hackers take control of a computer — they overwrite the go-back address to run whatever they want.',
+  },
+  {
+    title: '04: Randomized Addresses',
+    desc: 'Now the computer shuffles where everything is in memory each time the program runs (<strong>ASLR</strong>). Your old address for win() won\'t work anymore! But the program accidentally prints where <strong>main()</strong> is. Since win() is always <strong>+0x150</strong> bytes after main(), you can do the math. Use the hex calculator to add the leaked address + offset.',
+    code: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void win() {', cls: '' },
+      { text: '    printf("FLAG{aslr_defeated}\\n");', cls: '' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void vuln() {', cls: '', fn: true },
+      { text: '    char buf[16];', cls: '' },
+      { text: '    // info leak — but not the function we want', cls: 'cmt' },
+      { text: '    printf("DEBUG: main=%p\\n", main);', cls: 'highlight' },
+      { text: '    gets(buf);', cls: 'highlight vuln' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    vuln();', cls: '' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'input-hex',
+    bufSize: 16,
+    showSymbols: false,
+    showBuilder: true,
+    showCalc: true,
+    aslr: true,
+    check(sim) {
+      return sim.getRetAddr() === state.symbols.win;
+    },
+    winTitle: 'FLAG{aslr_defeated}',
+    winMsg: 'Even though the addresses were randomized, you figured out win()\'s address by reading the leaked main() address and doing simple math. This is exactly how real hackers beat ASLR — find one leaked address, calculate the rest.',
+  },
+  {
+    title: '05: The Tripwire',
+    desc: 'The program now places a secret value (a <strong>stack canary</strong>) between your buffer and the important stuff above it — like a tripwire. If you overwrite it, the program catches you and aborts. But there\'s a bug that leaks the secret value. Put the correct canary bytes in your payload at the right spot to sneak past the tripwire.',
+    code: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void win() {', cls: '' },
+      { text: '    printf("FLAG{canary_bypassed}\\n");', cls: '' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'void vuln() {', cls: '', fn: true },
+      { text: '    char buf[16];', cls: '' },
+      { text: '    // format string leak — prints stack contents', cls: 'cmt' },
+      { text: '    printf(buf);', cls: 'highlight' },
+      { text: '    gets(buf);', cls: 'highlight vuln' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'int main() {', cls: '' },
+      { text: '    vuln();', cls: '' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+    mode: 'input-hex',
+    bufSize: 16,
+    showSymbols: true,
+    showBuilder: true,
+    aslr: false,
+    canary: true,
+    check(sim) {
+      return sim.canaryIntact() && sim.getRetAddr() === state.symbols.win;
+    },
+    winTitle: 'FLAG{canary_bypassed}',
+    winMsg: 'You read the leaked secret value and carefully placed it in your payload so the tripwire stayed intact — while still overwriting the go-back address. Sneaky! This is how real attackers bypass stack canaries.',
+  },
+];
+
+// ──────────────────────────────────────────────
+// Rendering
+// ──────────────────────────────────────────────
+
+function renderNav() {
+  const nav = document.getElementById('exercise-nav');
+  nav.innerHTML = '';
+  EXERCISES.forEach((ex, i) => {
+    const btn = document.createElement('button');
+    btn.textContent = ex.title;
+    btn.dataset.ex = i;
+    if (i === state.currentEx) btn.classList.add('active');
+    if (state.completed.has(i)) btn.classList.add('completed');
+    if (i > 0 && !state.completed.has(i - 1) && i !== state.currentEx) {
+      if (i < 4) { /* allow access to completed+1 */ }
+    }
+    btn.onclick = () => loadExercise(i);
+    nav.appendChild(btn);
+  });
+  const sandboxBtn = document.createElement('button');
+  sandboxBtn.textContent = '06: Sandbox';
+  sandboxBtn.dataset.ex = 'sandbox';
+  if (state.currentEx === 'sandbox') sandboxBtn.classList.add('active');
+  if (!state.completed.has(4)) {
+    sandboxBtn.disabled = true;
+    sandboxBtn.title = 'Complete all exercises to unlock';
+  }
+  sandboxBtn.onclick = () => { if (state.completed.has(4)) loadSandbox(); };
+  nav.appendChild(sandboxBtn);
+}
+
+function renderSource(ex) {
+  const el = document.getElementById('source-code');
+  const desc = document.getElementById('exercise-desc');
+  desc.innerHTML = ex.desc;
+  el.innerHTML = '';
+  ex.code.forEach((line, i) => {
+    const span = document.createElement('span');
+    span.className = 'src-line ' + (line.cls || '');
+    const ln = document.createElement('span');
+    ln.className = 'ln';
+    ln.textContent = i + 1;
+    span.appendChild(ln);
+    let html = line.text
+      .replace(/\b(void|int|char|return|include|printf)\b/g, '<span class="src-kw">$1</span>')
+      .replace(/\b(gets)\b/g, '<span class="src-vuln">$1</span>')
+      .replace(/"([^"]*)"/g, '<span class="src-str">"$1"</span>')
+      .replace(/\b(main|vuln|win|normal)\b(?=\s*\()/g, '<span class="src-fn">$1</span>')
+      .replace(/(\/\/.*)$/g, '<span class="src-cmt">$1</span>');
+    const code = document.createElement('span');
+    code.innerHTML = html;
+    span.appendChild(code);
+    el.appendChild(span);
+  });
+}
+
+function renderStack() {
+  const sim = state.sim;
+  if (!sim) return;
+  const el = document.getElementById('stack-viz');
+  el.innerHTML = '';
+
+  const rowSize = 4;
+  const numRows = Math.ceil(sim.totalSize / rowSize);
+
+  for (let r = numRows - 1; r >= 0; r--) {
+    const offset = r * rowSize;
+    const addr = sim.baseAddr + offset;
+
+    const row = document.createElement('div');
+    row.className = 'stack-row';
+    const region = sim.regionOf(offset);
+    row.classList.add('region-' + region);
+    if (offset === 0 || offset === sim.bufSize ||
+        (sim.useCanary && offset === sim.bufSize + sim.canarySize) ||
+        offset === sim.bufSize + sim.canarySize + 4) {
+      row.classList.add('region-start');
+    }
+
+    const addrEl = document.createElement('span');
+    addrEl.className = 'stack-addr';
+    addrEl.textContent = hex8(addr);
+    row.appendChild(addrEl);
+
+    const bytesEl = document.createElement('span');
+    bytesEl.className = 'stack-bytes';
+    let asciiStr = '';
+    for (let b = 0; b < rowSize; b++) {
+      const idx = offset + b;
+      const byteEl = document.createElement('span');
+      byteEl.className = 'stack-byte';
+      if (idx < sim.totalSize) {
+        byteEl.textContent = hex2(sim.memory[idx]);
+        asciiStr += toAscii(sim.memory[idx]);
+        if (sim.overflowAt[idx]) byteEl.classList.add('overflow');
+        if (sim.written[idx]) byteEl.classList.add('just-written');
+        if (idx >= sim.hlStart && idx < sim.hlEnd) byteEl.classList.add('current');
+      } else {
+        byteEl.textContent = '--';
+        byteEl.classList.add('empty');
+        asciiStr += ' ';
+      }
+      bytesEl.appendChild(byteEl);
+    }
+    row.appendChild(bytesEl);
+
+    const asciiEl = document.createElement('span');
+    asciiEl.className = 'stack-ascii';
+    asciiEl.textContent = asciiStr;
+    row.appendChild(asciiEl);
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'stack-label';
+    if (offset === sim.bufSize + sim.canarySize + 4) {
+      const retVal = sim.getRetAddr();
+      labelEl.innerHTML = '← <span style="color:var(--amber)">Go-Back Address</span> = ' + hex8(retVal);
+    } else if (offset === sim.bufSize + sim.canarySize) {
+      labelEl.innerHTML = '← <span style="color:var(--blue)">Saved Bookmark (EBP)</span>';
+    } else if (sim.useCanary && offset === sim.bufSize) {
+      const intact = sim.canaryIntact();
+      labelEl.innerHTML = '← <span style="color:var(--purple)">Tripwire (Canary)</span> ' +
+        (intact ? '<span style="color:var(--green)">✓ intact</span>' : '<span style="color:var(--red)">✗ CORRUPTED</span>');
+    } else if (offset === 0) {
+      labelEl.innerHTML = '← <span style="color:var(--green)">buf[0]</span> (write starts here)';
+    } else if (offset < sim.bufSize) {
+      labelEl.innerHTML = '<span style="color:var(--text-dim)">buf[' + offset + '..' + Math.min(offset + 3, sim.bufSize - 1) + ']</span>';
+    }
+    row.appendChild(labelEl);
+
+    el.appendChild(row);
+  }
+
+  const info = document.getElementById('stack-info');
+  const canaryLabel = sim.useCanary ? ' + tripwire[4]' : '';
+  info.textContent = '— ' + sim.totalSize + ' bytes total: buffer[' + sim.bufSize + ']' + canaryLabel + ' + bookmark[4] + go-back addr[4]';
+}
+
+function renderInput(ex) {
+  const area = document.getElementById('input-area');
+  const builder = document.getElementById('payload-builder');
+  const syms = document.getElementById('symbols-table');
+
+  if (ex.mode === 'step') {
+    area.innerHTML = `
+      <div class="controls">
+        <button class="primary" onclick="doStep()">Step →</button>
+        <button onclick="doReset()">Reset</button>
+      </div>
+    `;
+    builder.style.display = 'none';
+    syms.style.display = 'none';
+    return;
+  }
+
+  let modeHtml = '';
+  if (ex.mode === 'input-hex') {
+    modeHtml = `
+      <div class="input-mode-toggle">
+        <button class="${state.inputMode === 'text' ? 'active' : ''}" onclick="setInputMode('text')">ASCII</button>
+        <button class="${state.inputMode === 'hex' ? 'active' : ''}" onclick="setInputMode('hex')">Hex</button>
+      </div>
+    `;
+  }
+
+  const placeholder = state.inputMode === 'hex'
+    ? 'Enter hex bytes: 41 41 41 41 ...'
+    : 'Type your input...';
+
+  area.innerHTML = `
+    ${modeHtml}
+    <label>Your input (${state.inputMode === 'hex' ? 'hex bytes, space-separated' : 'text'}):</label>
+    <textarea id="payload-input" placeholder="${placeholder}" oninput="onPayloadInput()" rows="2"></textarea>
+    <div id="step-counter" style="font-size:11px;color:var(--text-dim);margin-top:0.5rem;min-height:1.2em"></div>
+    <div class="controls" style="margin-top:0.25rem">
+      <button class="primary" onclick="doStep()">Step →</button>
+      <button onclick="doRunAll()">Run ▶▶</button>
+      <button onclick="doReset()">Reset</button>
+    </div>
+  `;
+
+  if (ex.showBuilder) {
+    builder.style.display = 'block';
+    const canaryRow = state.sim.useCanary ? `
+      <div class="builder-row">
+        <label style="color:var(--purple)">Tripwire value (4 bytes):</label>
+        <input id="b-canary" placeholder="0x????????" oninput="buildPayload()">
+        <span class="hint">check the execution log for the leaked value</span>
+      </div>` : '';
+    builder.innerHTML = `
+      <h4>Payload Builder</h4>
+      <div class="builder-row">
+        <label>Padding (${state.sim.bufSize} bytes):</label>
+        <input id="b-pad" value="${'A'.repeat(state.sim.bufSize)}" oninput="buildPayload()">
+        <span class="hint">fills the buffer</span>
+      </div>
+      ${canaryRow}
+      <div class="builder-row">
+        <label>Junk (4 bytes):</label>
+        <input id="b-ebp" value="BBBB" oninput="buildPayload()">
+        <span class="hint">overwrites the saved bookmark — anything works</span>
+      </div>
+      <div class="builder-row">
+        <label>Target address:</label>
+        <input id="b-addr" placeholder="0x????????" oninput="buildPayload()">
+        <span class="hint">→ written backwards! (little-endian)</span>
+      </div>
+      <div style="margin-top:0.35rem">
+        <button onclick="useBuiltPayload()" style="background:transparent;border:1px solid var(--green);color:var(--green);font-family:var(--font);font-size:11px;padding:0.2rem 0.5rem;cursor:pointer">
+          Copy to input ↑
+        </button>
+      </div>
+      <div id="built-payload"></div>
+    `;
+    buildPayload();
+  } else {
+    builder.style.display = 'none';
+  }
+
+  const calc = document.getElementById('hex-calc');
+  if (ex.showCalc) {
+    calc.style.display = 'block';
+    calc.innerHTML = `
+      <h4>Hex Calculator</h4>
+      <div class="calc-row">
+        <input id="calc-a" placeholder="0x????????" oninput="calcHex()">
+        <span class="calc-op" id="calc-op-btn" onclick="toggleCalcOp()" title="click to toggle" style="cursor:pointer">+</span>
+        <input id="calc-b" placeholder="0x150" oninput="calcHex()">
+        <span class="calc-eq">=</span>
+        <span id="calc-result">—</span>
+      </div>
+      <div class="calc-hint">Paste the leaked main() address in the first box, put the offset to win (0x150) in the second, and you'll get win's real address. Click +/− to switch between add and subtract.</div>
+    `;
+  } else {
+    calc.style.display = 'none';
+  }
+
+  if (ex.showSymbols) {
+    syms.style.display = 'block';
+    let html = '<h4>Functions In The Program</h4>';
+    for (const [name, addr] of Object.entries(state.symbols)) {
+      const isTarget = name === 'win';
+      const note = isTarget ? '← jump here!' : '';
+      html += `<div class="sym-row ${isTarget ? 'target' : ''}">
+        <span class="sym-name">${name}()</span>
+        <span class="sym-addr">${hex8(addr)}</span>
+        <span class="sym-note">${note}</span>
+      </div>`;
+    }
+    syms.innerHTML = html;
+  } else {
+    syms.style.display = 'none';
+  }
+}
+
+function renderLog() {
+  const el = document.getElementById('exec-log');
+  el.innerHTML = '';
+  state.logMessages.forEach(([cls, msg]) => {
+    const div = document.createElement('div');
+    div.className = 'log-entry log-' + cls;
+    div.innerHTML = msg;
+    el.appendChild(div);
+  });
+  el.scrollTop = el.scrollHeight;
+}
+
+// ──────────────────────────────────────────────
+// Exercise loading
+// ──────────────────────────────────────────────
+function randomizeAddresses() {
+  const base = 0x56550000 + (Math.floor(Math.random() * 0x1000) << 4);
+  state.symbols = {
+    main:   base + 0x000,
+    vuln:   base + 0x054,
+    win:    base + 0x150,
+    normal: base + 0x0a0,
+  };
+  state.aslrBase = base;
+}
+
+function loadExercise(idx) {
+  state.currentEx = idx;
+  const ex = EXERCISES[idx];
+
+  if (ex.aslr) {
+    randomizeAddresses();
+  } else {
+    state.symbols = { ...BASE_SYMBOLS };
+  }
+
+  const retAddr = retAddrInMain();
+  const savedEbp = 0xbfff0200;
+  state.sim = new StackSim(ex.bufSize, retAddr, savedEbp, undefined, ex.canary);
+  state.stepIndex = 0;
+  state.execSteps = null;
+  state.execIndex = 0;
+  state.running = false;
+  state.inputMode = ex.mode === 'input-hex' ? 'hex' : 'text';
+  state.logMessages = [];
+
+  log('info', '═══ ' + ex.title + ' ═══');
+
+  if (ex.mode === 'step') {
+    state.sim.written.fill(0);
+    const blank = new Uint8Array(state.sim.totalSize);
+    state.sim.memory = blank;
+    state.sim._writeLE = StackSim.prototype._writeLE.bind(state.sim);
+    log('info', 'Click Step to see how the program sets up memory for this function.');
+  }
+
+  if (ex.aslr) {
+    log('info', 'ASLR is on — addresses are shuffled every time the program runs.');
+    log('warn', 'DEBUG: main() is at <span class="log-addr">' + hex8(state.symbols.main) + '</span> <span class="log-label">← the program accidentally leaked this!</span>');
+    log('info', 'From the program file, we know: main is at offset +0x000, vuln at +0x054, win at +0x150');
+  }
+
+  if (ex.canary && state.sim.useCanary) {
+    log('warn', 'Bug leaked the secret tripwire value: <span class="log-addr">' + hex8(state.sim.canaryValue) + '</span> <span class="log-label">← this is the canary!</span>');
+    log('info', 'The tripwire sits right after the buffer. Your payload needs: [' + state.sim.bufSize + ' bytes filler] [4 bytes canary] [4 bytes junk] [4 bytes target address]');
+  }
+
+  if (ex.mode !== 'step') {
+    log('info', 'Go-back address: ' + hex8(retAddr) + ' (where the program normally returns to after vuln finishes)');
+  }
+
+  renderNav();
+  renderSource(ex);
+  renderStack();
+  renderInput(ex);
+  renderLog();
+}
+
+function loadSandbox() {
+  state.currentEx = 'sandbox';
+  state.symbols = { ...BASE_SYMBOLS };
+
+  const bufSize = 16;
+  const retAddr = retAddrInMain();
+  const savedEbp = 0xbfff0200;
+  state.sim = new StackSim(bufSize, retAddr, savedEbp);
+  state.inputMode = 'hex';
+  state.logMessages = [];
+  log('info', '═══ 06: Sandbox ═══');
+  log('info', 'Free exploration. Adjust buffer size and toggle ASLR.');
+
+  renderNav();
+
+  document.getElementById('exercise-desc').innerHTML = '<strong>Sandbox mode.</strong> Play around freely! Change the buffer size, turn protections on and off, and try different payloads.';
+  state.sandboxCode = [
+    { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
+    { text: '', cls: '' },
+    { text: 'void vuln() {', cls: '' },
+    { text: '    char buf[N];', cls: '' },
+    { text: '    gets(buf);', cls: 'highlight vuln' },
+    { text: '}', cls: '' },
+    { text: '', cls: '' },
+    { text: 'int main() {', cls: '' },
+    { text: '    vuln();', cls: '' },
+    { text: '    return 0;', cls: '' },
+    { text: '}', cls: '' },
+  ];
+  renderSource({ desc: '', code: state.sandboxCode });
+
+  renderStack();
+
+  const area = document.getElementById('input-area');
+  area.innerHTML = `
+    <div class="sandbox-controls">
+      <label>Buffer size: <input type="range" id="sb-bufsize" min="4" max="64" step="4" value="16" oninput="sbUpdate()"><span id="sb-bufsize-val">16</span></label>
+      <label><input type="checkbox" id="sb-aslr" onchange="sbUpdate()"> ASLR</label>
+      <label><input type="checkbox" id="sb-canary" onchange="sbUpdate()"> Tripwire (Canary)</label>
+      <label><input type="checkbox" id="sb-nx" onchange="sbUpdate()"> NX (block code on stack)</label>
+      <button onclick="sbRerun()" style="background:transparent;border:1px solid var(--panel-border);color:var(--text);font-family:var(--font);font-size:11px;padding:0.2rem 0.5rem;cursor:pointer">Re-run (re-randomize)</button>
+    </div>
+    <div class="input-mode-toggle">
+      <button class="${state.inputMode === 'text' ? 'active' : ''}" onclick="setInputMode('text')">ASCII</button>
+      <button class="${state.inputMode === 'hex' ? 'active' : ''}" onclick="setInputMode('hex')">Hex</button>
+    </div>
+    <label>Payload:</label>
+    <textarea id="payload-input" placeholder="Enter hex bytes..." oninput="onPayloadInput()" rows="2"></textarea>
+    <div id="step-counter" style="font-size:11px;color:var(--text-dim);margin-top:0.5rem;min-height:1.2em"></div>
+    <div class="controls" style="margin-top:0.25rem">
+      <button class="primary" onclick="doStep()">Step →</button>
+      <button onclick="doRunAll()">Run ▶▶</button>
+      <button onclick="sbRerun()">Reset</button>
+    </div>
+  `;
+
+  document.getElementById('payload-builder').style.display = 'none';
+
+  const syms = document.getElementById('symbols-table');
+  syms.style.display = 'block';
+  let html = '<h4>Functions In The Program</h4>';
+  for (const [name, addr] of Object.entries(state.symbols)) {
+    html += `<div class="sym-row ${name === 'win' ? 'target' : ''}">
+      <span class="sym-name">${name}()</span>
+      <span class="sym-addr">${hex8(addr)}</span>
+      <span class="sym-note">${name === 'win' ? '← jump here!' : ''}</span>
+    </div>`;
+  }
+  syms.innerHTML = html;
+
+  renderLog();
+}
+
+function sbUpdate() {
+  const bufSize = parseInt(document.getElementById('sb-bufsize').value);
+  document.getElementById('sb-bufsize-val').textContent = bufSize;
+  const aslr = document.getElementById('sb-aslr').checked;
+
+  if (aslr) {
+    randomizeAddresses();
+  } else {
+    state.symbols = { ...BASE_SYMBOLS };
+  }
+
+  const canary = document.getElementById('sb-canary').checked;
+  const nx = document.getElementById('sb-nx').checked;
+  const retAddr = retAddrInMain();
+  state.sim = new StackSim(bufSize, retAddr, 0xbfff0200, undefined, canary);
+  state.logMessages = [];
+  log('info', 'Sandbox reset. Buffer: ' + bufSize + ' bytes. ASLR: ' + (aslr ? 'ON' : 'OFF') + '. Canary: ' + (canary ? 'ON' : 'OFF') + '. NX: ' + (nx ? 'ON' : 'OFF'));
+  if (nx) {
+    log('info', 'NX is on — the computer won\'t run code stored on the stack. Try jumping to the stack to see it get blocked, then jump to win() instead.');
+  }
+  if (aslr) {
+    log('warn', 'DEBUG: win() is at <span class="log-addr">' + hex8(state.symbols.win) + '</span>');
+  }
+  log('info', 'Go-back address: ' + hex8(retAddr));
+
+  const syms = document.getElementById('symbols-table');
+  let html = '<h4>Functions In The Program</h4>';
+  for (const [name, addr] of Object.entries(state.symbols)) {
+    html += `<div class="sym-row ${name === 'win' ? 'target' : ''}">
+      <span class="sym-name">${name}()</span>
+      <span class="sym-addr">${hex8(addr)}</span>
+      <span class="sym-note">${name === 'win' ? '← jump here!' : ''}</span>
+    </div>`;
+  }
+  syms.innerHTML = html;
+
+  renderStack();
+  renderLog();
+}
+
+function sbRerun() {
+  state.running = false;
+  state.execSteps = null;
+  state.execIndex = 0;
+  sbUpdate();
+}
+
+// ──────────────────────────────────────────────
+// Actions
+// ──────────────────────────────────────────────
+
+function log(cls, msg) {
+  state.logMessages.push([cls, msg]);
+}
+
+function onPayloadInput() {
+  const textarea = document.getElementById('payload-input');
+  if (!textarea) return;
+  const raw = textarea.value;
+  let bytes;
+  if (state.inputMode === 'hex') {
+    bytes = hexStrToBytes(raw);
+  } else {
+    bytes = strToBytes(raw);
+  }
+  state.sim.writeInput(bytes);
+  renderStack();
+}
+
+// ──────────────────────────────────────────────
+// Unified step-through execution engine
+// ──────────────────────────────────────────────
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function highlightExecLine(lineIdx) {
+  document.querySelectorAll('.src-line.executing').forEach(el => el.classList.remove('executing'));
+  if (lineIdx >= 0) {
+    const lines = document.querySelectorAll('.src-line');
+    if (lines[lineIdx]) {
+      lines[lineIdx].classList.add('executing');
+      lines[lineIdx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+}
+
+function findCodeLine(ex, pattern) {
+  return ex.code.findIndex(l => l.text.includes(pattern));
+}
+
+function findVulnClose(ex) {
+  const start = findCodeLine(ex, 'void vuln');
+  if (start < 0) return -1;
+  for (let i = start + 1; i < ex.code.length; i++) {
+    if (ex.code[i].text.trim() === '}') return i;
+  }
+  return -1;
+}
+
+function updateStepCounter() {
+  const el = document.getElementById('step-counter');
+  if (!el) return;
+  if (!state.execSteps) { el.textContent = ''; return; }
+  const s = state.execSteps[state.execIndex];
+  const label = s ? s.label : 'done';
+  el.innerHTML = '<span style="color:var(--yellow)">Step ' + (state.execIndex + 1) + '/' + state.execSteps.length + '</span> — ' + label;
+}
+
+function generateExecSteps(ex, bytes) {
+  const sim = state.sim;
+  const steps = [];
+  const WORD = 4;
+
+  // 1. CALL vuln
+  steps.push({
+    label: 'CALL vuln',
+    srcLine: findCodeLine(ex, '    vuln();'),
+    logs: [['action', '▶ Calling vuln() — saving go-back address <span class="log-addr">' + hex8(sim.origRetAddr) + '</span>']],
+    action(sim) {
+      sim.clearBlank();
+      sim._writeLE(sim.bufSize + sim.canarySize + 4, sim.origRetAddr, 4);
+      sim.markRegion(sim.bufSize + sim.canarySize + 4, sim.totalSize);
+    }
+  });
+
+  // 2. push EBP
+  steps.push({
+    label: 'save bookmark (push EBP)',
+    srcLine: findCodeLine(ex, 'void vuln'),
+    logs: [['action', 'Save bookmark to previous frame <span class="log-addr">' + hex8(sim.origSavedEbp) + '</span> (so the program can clean up later)']],
+    action(sim) {
+      sim._writeLE(sim.bufSize + sim.canarySize, sim.origSavedEbp, 4);
+      sim.markRegion(sim.bufSize + sim.canarySize, sim.bufSize + sim.canarySize + 4);
+    }
+  });
+
+  // 3. sub ESP (allocate buffer + canary)
+  const allocLabel = sim.useCanary ? 'Make room for buf[' + sim.bufSize + '] + canary[4] (' + (sim.bufSize + sim.canarySize) + ' bytes)' : 'Make room for buf[' + sim.bufSize + '] (' + sim.bufSize + ' bytes on the stack)';
+  steps.push({
+    label: allocLabel,
+    srcLine: findCodeLine(ex, 'char buf'),
+    logs: [['action', allocLabel]],
+    action(sim) {
+      for (let i = 0; i < sim.bufSize; i++) sim.memory[i] = 0;
+      if (sim.useCanary) sim._writeLE(sim.bufSize, sim.canaryValue, 4);
+      sim.markRegion(0, sim.bufSize + sim.canarySize);
+    }
+  });
+
+  // 4. Info leak lines (printf)
+  const printfLine = findCodeLine(ex, 'printf(');
+  const leakLine = ex.code.findIndex(l => l.text.includes('printf') && (l.text.includes('DEBUG') || l.text.includes('printf(buf)')));
+  if (leakLine >= 0) {
+    steps.push({
+      label: 'printf — accidental leak!',
+      srcLine: leakLine,
+      logs: ex.aslr
+        ? [['warn', 'printf output: DEBUG: main() is at <span class="log-addr">' + hex8(state.symbols.main) + '</span> <span class="log-label">← the program leaked an address!</span>']]
+        : ex.canary
+          ? [['warn', 'Bug in printf(buf) leaks the secret tripwire: canary = <span class="log-addr">' + hex8(sim.canaryValue) + '</span> <span class="log-label">← now we know it!</span>']]
+          : [['info', 'printf output']],
+      action() {}
+    });
+  }
+
+  // 5. gets(buf) — write word by word
+  const getsLine = findCodeLine(ex, 'gets');
+  const totalBytes = Math.min(bytes.length, sim.totalSize);
+
+  for (let off = 0; off < totalBytes; off += WORD) {
+    const chunk = bytes.slice(off, Math.min(off + WORD, totalBytes));
+    const region = sim.regionOf(off);
+    const isOverflow = off >= sim.bufSize;
+    let label = 'gets(): write ';
+    if (region === 'buffer') label += 'buf[' + off + '..' + (off + chunk.length - 1) + ']';
+    else if (region === 'canary') label += 'OVERFLOW → canary (tripwire!)';
+    else if (region === 'ebp') label += 'OVERFLOW → saved bookmark';
+    else if (region === 'ret') label += 'OVERFLOW → go-back address!';
+
+    const hexChunk = chunk.map(b => hex2(b)).join(' ');
+    const asciiChunk = chunk.map(b => toAscii(b)).join('');
+
+    const logs = [['action', label + '  [' + hexChunk + '] "' + asciiChunk + '"']];
+    if (off === sim.bufSize) {
+      logs.unshift(['warn', '⚠ OVERFLOW — input is spilling past the buffer! Everything above it is getting overwritten!']);
+    }
+
+    const capturedOff = off;
+    const capturedChunk = chunk;
+    steps.push({
+      label: label,
+      srcLine: getsLine,
+      logs: logs,
+      action(sim) { sim.writeWord(capturedOff, capturedChunk); }
+    });
+  }
+
+  // 6. gets returns
+  steps.push({
+    label: 'gets() returns',
+    srcLine: getsLine,
+    logs: [['action', 'gets() finished reading your input — ' + totalBytes + ' bytes placed on the stack.']],
+    action(sim) { sim.clearHighlight(); }
+  });
+
+  // 7. Canary check (if applicable)
+  if (sim.useCanary) {
+    steps.push({
+      label: 'Check the tripwire (canary)',
+      srcLine: findVulnClose(ex),
+      logs: [],
+      action(sim) {
+        sim.markRegion(sim.bufSize, sim.bufSize + sim.canarySize);
+      },
+      canaryCheck: true
+    });
+  }
+
+  // 8. LEAVE
+  steps.push({
+    label: 'Clean up — function is ending',
+    srcLine: findVulnClose(ex),
+    logs: [['action', 'Function is done — cleaning up the stack frame']],
+    action(sim) { sim.markRegion(sim.bufSize + sim.canarySize, sim.bufSize + sim.canarySize + 4); }
+  });
+
+  // 9. RET — pop EIP
+  steps.push({
+    label: 'Return — jump to go-back address',
+    srcLine: findVulnClose(ex),
+    logs: [],
+    action(sim) { sim.markRegion(sim.bufSize + sim.canarySize + 4, sim.totalSize); },
+    retCheck: true
+  });
+
+  // 10. Jump destination
+  steps.push({
+    label: 'Jump! Where does the program go?',
+    srcLine: -1,
+    logs: [],
+    action() {},
+    jumpCheck: true
+  });
+
+  return steps;
+}
+
+function execCurrentStep() {
+  if (!state.execSteps || state.execIndex >= state.execSteps.length) return false;
+  const step = state.execSteps[state.execIndex];
+  const sim = state.sim;
+  const ex = typeof state.currentEx === 'number' ? EXERCISES[state.currentEx] : null;
+
+  step.action(sim);
+  if (step.srcLine >= 0) highlightExecLine(step.srcLine);
+  else highlightExecLine(-1);
+  step.logs.forEach(([cls, msg]) => log(cls, msg));
+
+  // Special checks
+  if (step.canaryCheck) {
+    if (!sim.canaryIntact()) {
+      log('error', '*** stack smashing detected! *** The tripwire was <span class="log-addr">' + hex8(sim.canaryValue) +
+        '</span> but is now <span class="log-addr">' + hex8(sim.getCanary()) + '</span>');
+      log('error', 'Program aborted! You need to put the correct canary value at position ' + sim.bufSize + ' in your payload so the tripwire stays intact.');
+      renderStack(); renderLog(); updateStepCounter();
+      state.execSteps = null;
+      highlightExecLine(-1);
+      return false;
+    } else {
+      log('success', 'Tripwire (canary) intact ✓ — snuck past it!');
+    }
+  }
+
+  if (step.retCheck) {
+    const retAddr = sim.getRetAddr();
+    log('action', 'Reading the go-back address: <span class="log-addr">' + hex8(retAddr) + '</span> — the program will jump here!');
+  }
+
+  if (step.jumpCheck) {
+    const retAddr = sim.getRetAddr();
+    const nxEnabled = (ex && ex.nx) || (state.currentEx === 'sandbox' && document.getElementById('sb-nx')?.checked);
+    const isStackAddr = retAddr >= 0xbfff0000 && retAddr < 0xc0000000;
+
+    if (isStackAddr && nxEnabled) {
+      log('error', '→ CRASH: tried to run code at <span class="log-addr">' + hex8(retAddr) + '</span> but the stack is marked "no running code here" (NX)');
+      log('error', 'NX protection means the computer will store your data on the stack, but refuses to run it as code.');
+      log('info', 'To bypass this, jump to a function that already exists in the program (like win) instead of trying to run your own code on the stack.');
+    } else if (isStackAddr && !nxEnabled) {
+      const off = retAddr - sim.baseAddr;
+      if (off >= 0 && off < sim.totalSize) {
+        const shellBytes = [];
+        for (let i = off; i < Math.min(off + 8, sim.totalSize); i++) shellBytes.push(hex2(sim.memory[i]));
+        log('success', '→ Jumped to the stack at <span class="log-addr">' + hex8(retAddr) + '</span> — running your bytes as code: ' + shellBytes.join(' '));
+        log('success', 'NX is OFF — the computer is running your input as if it were a real program. This is called shellcode injection!');
+        if (state.currentEx === 'sandbox') log('success', 'FLAG{shellcode_executed}');
+      } else {
+        log('success', '→ Jumped to the stack at <span class="log-addr">' + hex8(retAddr) + '</span> — running your input as code!');
+        if (state.currentEx === 'sandbox') log('success', 'FLAG{shellcode_executed}');
+      }
+    } else {
+      const sym = Object.entries(state.symbols).find(([, a]) => a === retAddr);
+      if (sym && sym[0] === 'win') {
+        const winLine = ex ? findCodeLine(ex, 'void win') : -1;
+        if (winLine >= 0) highlightExecLine(winLine);
+        log('success', '→ Jumped to win() — you control where the program goes!');
+        if (nxEnabled) log('success', 'NX bypassed — you jumped to a real function in the program instead of code on the stack. Smart!');
+        if (ex && ex.winTitle) {
+          showSuccess(ex.winTitle, ex.winMsg);
+          state.completed.add(state.currentEx);
+          renderNav();
+        } else if (state.currentEx === 'sandbox') {
+          log('success', 'FLAG{sandbox_master}');
+        }
+      } else if (sym) {
+        log('info', '→ Jumped to ' + sym[0] + '() at ' + hex8(retAddr));
+      } else if (retAddr === sim.origRetAddr) {
+        log('info', '→ Normal return to main() at ' + hex8(retAddr) + ' — nothing was overwritten');
+      } else {
+        log('error', '→ CRASH! The program tried to jump to ' + hex8(retAddr) + ' which doesn\'t exist — Segmentation Fault');
+        if (ex && ex.check && ex.check(sim)) {
+          showSuccess(ex.winTitle, ex.winMsg);
+          state.completed.add(state.currentEx);
+          renderNav();
+        }
+      }
+    }
+  }
+
+  renderStack();
+  renderLog();
+  state.execIndex++;
+  updateStepCounter();
+  return state.execIndex < state.execSteps.length;
+}
+
+function doStep() {
+  const ex = typeof state.currentEx === 'number' ? EXERCISES[state.currentEx] : null;
+
+  // Exercise 1 uses its own predefined step system
+  if (ex && ex.mode === 'step') {
+    if (!ex.steps || state.stepIndex >= ex.steps.length) {
+      log('info', 'All steps complete.');
+      renderLog();
+      state.completed.add(state.currentEx);
+      renderNav();
+      return;
+    }
+    const step = ex.steps[state.stepIndex];
+    const sim = state.sim;
+    if (step.region === 'ret') {
+      const ret = retAddrInMain();
+      sim._writeLE(sim.bufSize + sim.canarySize + 4, ret, 4);
+      sim.markRegion(sim.bufSize + sim.canarySize + 4, sim.totalSize);
+      highlightExecLine(findCodeLine(ex, '    vuln();'));
+      log('action', 'Calling vuln() — saving the go-back address <span class="log-addr">' + hex8(ret) + '</span> so we know where to return');
+    } else if (step.region === 'ebp') {
+      sim._writeLE(sim.bufSize + sim.canarySize, 0xbfff0200, 4);
+      sim.markRegion(sim.bufSize + sim.canarySize, sim.bufSize + sim.canarySize + 4);
+      highlightExecLine(findCodeLine(ex, 'void vuln'));
+      log('action', step.log[1]);
+    } else if (step.region === 'buffer') {
+      for (let i = 0; i < sim.bufSize; i++) sim.memory[i] = 0;
+      sim.markRegion(0, sim.bufSize);
+      highlightExecLine(findCodeLine(ex, 'char buf'));
+      log('action', step.log[1]);
+    } else if (step.region === 'all') {
+      highlightExecLine(-1);
+      sim.clearHighlight();
+      log(step.log[0], step.log[1]);
+    } else {
+      log(step.log[0], step.log[1]);
+    }
+    state.stepIndex++;
+    renderStack(); renderLog();
+    if (state.stepIndex >= ex.steps.length) {
+      state.completed.add(state.currentEx);
+      renderNav();
+    }
+    return;
+  }
+
+  // Exercises 2-6 + sandbox: generate steps on first click
+  if (!state.execSteps) {
+    const textarea = document.getElementById('payload-input');
+    if (!textarea || !textarea.value.trim()) { log('info', 'Enter a payload first.'); renderLog(); return; }
+    const raw = textarea.value;
+    const bytes = state.inputMode === 'hex' ? hexStrToBytes(raw) : strToBytes(raw);
+    if (!bytes.length) { log('info', 'Empty payload.'); renderLog(); return; }
+
+    state.sim.resetForInput();
+    state.sim.clearBlank();
+    const exOrSandbox = ex || {code: state.sandboxCode || [], aslr: document.getElementById('sb-aslr')?.checked, canary: document.getElementById('sb-canary')?.checked, nx: document.getElementById('sb-nx')?.checked};
+    state.execSteps = generateExecSteps(exOrSandbox, bytes);
+    state.execIndex = 0;
+    renderStack();
+    updateStepCounter();
+  }
+
+  if (state.execIndex >= state.execSteps.length) {
+    log('info', 'Execution complete. Reset to try again.');
+    renderLog();
+    return;
+  }
+
+  execCurrentStep();
+}
+
+async function doRunAll() {
+  if (state.running) return;
+
+  // Generate steps if not yet started
+  if (!state.execSteps) {
+    doStep(); // this generates steps and runs the first one
+    if (!state.execSteps) return; // no payload
+  }
+
+  state.running = true;
+  while (state.execIndex < state.execSteps.length) {
+    const step = state.execSteps[state.execIndex];
+    const isOverflow = step.label.includes('OVERFLOW');
+    const isCheck = step.canaryCheck || step.retCheck || step.jumpCheck;
+
+    execCurrentStep();
+    await delay(isCheck ? 600 : isOverflow ? 300 : 150);
+
+    if (!state.running) break; // reset was called
+  }
+  state.running = false;
+}
+
+function doReset() {
+  state.running = false;
+  state.execSteps = null;
+  state.execIndex = 0;
+  highlightExecLine(-1);
+  if (typeof state.currentEx === 'number') {
+    loadExercise(state.currentEx);
+  } else {
+    loadSandbox();
+  }
+}
+
+function setInputMode(mode) {
+  state.inputMode = mode;
+  const ex = typeof state.currentEx === 'number' ? EXERCISES[state.currentEx] : null;
+  if (ex) {
+    renderInput(ex);
+  } else {
+    // sandbox - re-render mode toggle
+    document.querySelectorAll('.input-mode-toggle button').forEach(b => {
+      b.classList.toggle('active', b.textContent.toLowerCase().includes(mode === 'hex' ? 'hex' : 'ascii'));
+    });
+    const ta = document.getElementById('payload-input');
+    if (ta) ta.placeholder = mode === 'hex' ? 'Enter hex bytes: 41 41 41 41 ...' : 'Type your input...';
+  }
+}
+
+function calcHex() {
+  const aEl = document.getElementById('calc-a');
+  const bEl = document.getElementById('calc-b');
+  const resEl = document.getElementById('calc-result');
+  const opEl = document.getElementById('calc-op-btn');
+  if (!aEl || !bEl || !resEl) return;
+
+  const a = parseInt(aEl.value.replace(/^0x/i, ''), 16);
+  const b = parseInt(bEl.value.replace(/^0x/i, ''), 16);
+  if (isNaN(a) || isNaN(b)) { resEl.textContent = '—'; return; }
+
+  const op = opEl.textContent.trim();
+  const result = op === '+' ? (a + b) >>> 0 : (a - b) >>> 0;
+  resEl.textContent = hex8(result);
+}
+
+function toggleCalcOp() {
+  const opEl = document.getElementById('calc-op-btn');
+  if (!opEl) return;
+  opEl.textContent = opEl.textContent.trim() === '+' ? '−' : '+';
+  calcHex();
+}
+
+function buildPayload() {
+  const padEl = document.getElementById('b-pad');
+  const ebpEl = document.getElementById('b-ebp');
+  const addrEl = document.getElementById('b-addr');
+  const canaryEl = document.getElementById('b-canary');
+  const outEl = document.getElementById('built-payload');
+  if (!padEl || !outEl) return;
+
+  const padBytes = strToBytes(padEl.value);
+  const ebpBytes = strToBytes(ebpEl.value);
+
+  let canaryBytes = [];
+  if (state.sim.useCanary) {
+    const canaryHex = canaryEl ? canaryEl.value.replace(/^0x/i, '') : '';
+    if (!canaryHex) {
+      outEl.textContent = '(enter the canary value from the execution log)';
+      return;
+    }
+    canaryBytes = addrToLE(canaryHex);
+    if (!canaryBytes) {
+      outEl.textContent = '(invalid canary hex)';
+      return;
+    }
+  }
+
+  const addrHex = addrEl.value.replace(/^0x/i, '');
+  if (!addrHex) {
+    outEl.textContent = '(enter a target address from the symbol table)';
+    return;
+  }
+  const addrBytes = addrToLE(addrHex);
+  if (!addrBytes) {
+    outEl.textContent = '(invalid address)';
+    return;
+  }
+
+  const all = [...padBytes.slice(0, state.sim.bufSize), ...canaryBytes, ...ebpBytes.slice(0, 4), ...addrBytes];
+  const hexStr = all.map(b => hex2(b)).join(' ');
+  const canaryDesc = state.sim.useCanary ? ' + 4 canary' : '';
+  outEl.innerHTML = hexStr + '<br><span style="color:var(--text-dim);font-size:10px">' + all.length + ' bytes — ' +
+    state.sim.bufSize + ' padding' + canaryDesc + ' + 4 EBP + 4 addr (' + hex8(parseInt(addrHex, 16)) + ' → LE: ' +
+    addrBytes.map(b => hex2(b)).join(' ') + ')</span>';
+}
+
+function useBuiltPayload() {
+  const padEl = document.getElementById('b-pad');
+  const ebpEl = document.getElementById('b-ebp');
+  const addrEl = document.getElementById('b-addr');
+  const canaryEl = document.getElementById('b-canary');
+  if (!padEl) return;
+
+  const padBytes = strToBytes(padEl.value);
+  const ebpBytes = strToBytes(ebpEl.value);
+
+  let canaryBytes = [];
+  if (state.sim.useCanary) {
+    const canaryHex = canaryEl ? canaryEl.value.replace(/^0x/i, '') : '';
+    if (!canaryHex) return;
+    canaryBytes = addrToLE(canaryHex);
+    if (!canaryBytes) return;
+  }
+
+  const addrHex = addrEl.value.replace(/^0x/i, '');
+  if (!addrHex) return;
+  const addrBytes = addrToLE(addrHex);
+  if (!addrBytes) return;
+
+  const all = [...padBytes.slice(0, state.sim.bufSize), ...canaryBytes, ...ebpBytes.slice(0, 4), ...addrBytes];
+  const hexStr = all.map(b => hex2(b)).join(' ');
+
+  state.inputMode = 'hex';
+  const ta = document.getElementById('payload-input');
+  if (ta) {
+    ta.value = hexStr;
+    onPayloadInput();
+  }
+  document.querySelectorAll('.input-mode-toggle button').forEach(b => {
+    b.classList.toggle('active', b.textContent === 'Hex');
+  });
+}
+
+function showSuccess(title, msg) {
+  const banner = document.getElementById('success-banner');
+  document.getElementById('success-title').textContent = title;
+  document.getElementById('success-msg').textContent = msg;
+  banner.classList.add('show');
+}
+
+function dismissSuccess() {
+  document.getElementById('success-banner').classList.remove('show');
+}
+
+// ──────────────────────────────────────────────
+// Keyboard shortcuts
+// ──────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  if (e.key === 'r' || e.key === 'R') doReset();
+});
+
+// ──────────────────────────────────────────────
+// Init
+// ──────────────────────────────────────────────
+loadExercise(0);
+</script>
+</body>
+</html>
