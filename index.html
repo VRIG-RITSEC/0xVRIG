@@ -35,16 +35,29 @@ header {
   flex-shrink: 0;
 }
 header h1 { font-size: 14px; color: var(--green); font-weight: normal; white-space: nowrap; }
-nav { display: flex; gap: 0.25rem; flex-wrap: wrap; }
+nav { display: flex; gap: 0.15rem; flex-wrap: wrap; align-items: center; }
+.nav-unit-label {
+  font-size: 10px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.05em; padding: 0.25rem 0.5rem; margin-left: 0.5rem;
+  border-left: 1px solid var(--panel-border);
+}
+.nav-unit-label:first-child { margin-left: 0; border-left: none; }
 nav button {
   background: transparent; border: 1px solid var(--panel-border); color: var(--text-dim);
-  padding: 0.25rem 0.75rem; font-family: var(--font); font-size: 11px; cursor: pointer;
-  transition: all 0.15s;
+  padding: 0.25rem 0.5rem; font-family: var(--font); font-size: 11px; cursor: pointer;
+  transition: all 0.15s; min-width: 2em; text-align: center;
 }
 nav button:hover:not(:disabled) { border-color: var(--text-dim); color: var(--text); }
 nav button.active { border-color: var(--green); color: var(--green); }
 nav button.completed { border-color: var(--comment); color: var(--comment); }
+nav button.completed::after { content: ' ✓'; font-size: 9px; }
 nav button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+#badges { display: flex; gap: 0.5rem; margin-left: auto; }
+.badge {
+  font-size: 11px; padding: 0.15rem 0.5rem; border: 1px solid var(--yellow);
+  color: var(--yellow); border-radius: 2px; white-space: nowrap;
+}
 
 main {
   flex: 1; display: grid; overflow: hidden;
@@ -256,8 +269,9 @@ main {
 <body class="crt">
 <div id="app">
   <header>
-    <h1>// STACK OVERFLOW LAB</h1>
+    <h1>// MEMORY CORRUPTION LAB</h1>
     <nav id="exercise-nav"></nav>
+    <div id="badges"></div>
   </header>
   <main>
     <div class="panel" id="source-panel">
@@ -458,6 +472,7 @@ function retAddrInMain() { return (state.symbols.main || BASE_SYMBOLS.main) + 0x
 
 const EXERCISES = [
   {
+    unit: 1,
     title: '01: The Stack Frame',
     desc: 'Watch how a function call sets up memory. Click <strong>Step</strong> to see each piece get placed on the stack — the computer saves where to go back to (return address), saves a bookmark to the previous frame, then makes room for local variables.',
     code: [
@@ -489,6 +504,7 @@ const EXERCISES = [
     check() { return false; },
   },
   {
+    unit: 1,
     title: '02: The Overflow',
     desc: 'This function reads your input with <strong>gets()</strong> — a dangerous function that doesn\'t check how much you type. Fill the 16-byte buffer, then <strong>keep typing</strong>. Watch what happens when your input spills into the saved bookmark and go-back address above it.',
     code: [
@@ -519,6 +535,7 @@ const EXERCISES = [
     winMsg: 'The program crashed because you overwrote the go-back address with garbage. The computer tried to jump to a nonsense location and exploded. Nice work — in exercise 3, you\'ll control WHERE it jumps instead of just crashing it.',
   },
   {
+    unit: 1,
     title: '03: Hijack Execution',
     desc: 'Now instead of crashing, make the program jump to <strong>win()</strong>. Use the payload builder to craft your input: 16 bytes of filler (fills the buffer), 4 bytes of junk (overwrites saved bookmark), then the address of win() written <strong>backwards</strong> (little-endian — the least significant byte goes first).',
     code: [
@@ -552,6 +569,7 @@ const EXERCISES = [
     winMsg: 'You made the program run a function it was never supposed to call! In a real attack, this is how hackers take control of a computer — they overwrite the go-back address to run whatever they want.',
   },
   {
+    unit: 1,
     title: '04: Randomized Addresses',
     desc: 'Now the computer shuffles where everything is in memory each time the program runs (<strong>ASLR</strong>). Your old address for win() won\'t work anymore! But the program accidentally prints where <strong>main()</strong> is. Since win() is always <strong>+0x150</strong> bytes after main(), you can do the math. Use the hex calculator to add the leaked address + offset.',
     code: [
@@ -586,6 +604,7 @@ const EXERCISES = [
     winMsg: 'Even though the addresses were randomized, you figured out win()\'s address by reading the leaked main() address and doing simple math. This is exactly how real hackers beat ASLR — find one leaked address, calculate the rest.',
   },
   {
+    unit: 1,
     title: '05: The Tripwire',
     desc: 'The program now places a secret value (a <strong>stack canary</strong>) between your buffer and the important stuff above it — like a tripwire. If you overwrite it, the program catches you and aborts. But there\'s a bug that leaks the secret value. Put the correct canary bytes in your payload at the right spot to sneak past the tripwire.',
     code: [
@@ -621,35 +640,162 @@ const EXERCISES = [
   },
 ];
 
+const UNITS = [
+  { id: 1, name: 'STACK', exercises: [0,1,2,3,4] },
+  { id: 2, name: 'LOGIC', exercises: [] },
+  { id: 3, name: 'STACK II', exercises: [] },
+  { id: 4, name: 'HEAP', exercises: [] },
+  { id: 5, name: 'HEAP II', exercises: [] },
+  { id: 6, name: 'FINAL', exercises: [] },
+];
+
+const BADGES = {
+  1: { name: 'Stack Smasher', icon: '🔨' },
+  2: { name: 'Logic Hacker', icon: '🧩' },
+  3: { name: 'Stack Master', icon: '⚡' },
+  4: { name: 'Heap Explorer', icon: '🗺️' },
+  5: { name: 'Heap Wizard', icon: '🧙' },
+  27: { name: 'Full Chain', icon: '🔗' },
+  28: { name: 'Certified Hacker', icon: '🏆' },
+};
+
 // ──────────────────────────────────────────────
 // Rendering
 // ──────────────────────────────────────────────
 
+function isExerciseUnlocked(idx) {
+  if (idx === 0) return true;
+  const ex = EXERCISES[idx];
+  if (!ex) return false;
+  const unit = UNITS.find(u => u.exercises.includes(idx));
+  if (!unit) return false;
+
+  // Unit 1: sequential unlock
+  if (unit.id === 1) {
+    return state.completed.has(idx - 1);
+  }
+
+  // Unit 6 (FINAL): requires ALL other units complete
+  if (unit.id === 6) {
+    for (const u of UNITS) {
+      if (u.id === 6) continue;
+      if (u.exercises.length === 0) continue;
+      for (const ei of u.exercises) {
+        if (!state.completed.has(ei)) return false;
+      }
+    }
+    const posInUnit = unit.exercises.indexOf(idx);
+    if (posInUnit === 0) return true;
+    return state.completed.has(unit.exercises[posInUnit - 1]);
+  }
+
+  // Units 2-5: require all of Unit 1 complete, then sequential within unit
+  const unit1 = UNITS.find(u => u.id === 1);
+  for (const ei of unit1.exercises) {
+    if (!state.completed.has(ei)) return false;
+  }
+  const posInUnit = unit.exercises.indexOf(idx);
+  if (posInUnit === 0) return true;
+  return state.completed.has(unit.exercises[posInUnit - 1]);
+}
+
+function isUnitComplete(unitId) {
+  const unit = UNITS.find(u => u.id === unitId);
+  if (!unit || unit.exercises.length === 0) return false;
+  return unit.exercises.every(ei => state.completed.has(ei));
+}
+
 function renderNav() {
   const nav = document.getElementById('exercise-nav');
   nav.innerHTML = '';
-  EXERCISES.forEach((ex, i) => {
-    const btn = document.createElement('button');
-    btn.textContent = ex.title;
-    btn.dataset.ex = i;
-    if (i === state.currentEx) btn.classList.add('active');
-    if (state.completed.has(i)) btn.classList.add('completed');
-    if (i > 0 && !state.completed.has(i - 1) && i !== state.currentEx) {
-      if (i < 4) { /* allow access to completed+1 */ }
-    }
-    btn.onclick = () => loadExercise(i);
-    nav.appendChild(btn);
+
+  UNITS.forEach(unit => {
+    if (unit.exercises.length === 0) return;
+
+    const label = document.createElement('span');
+    label.className = 'nav-unit-label';
+    label.textContent = unit.name;
+    nav.appendChild(label);
+
+    unit.exercises.forEach(idx => {
+      const ex = EXERCISES[idx];
+      const btn = document.createElement('button');
+      btn.textContent = String(idx + 1).padStart(2, '0');
+      btn.title = ex.title;
+      btn.dataset.ex = idx;
+      if (idx === state.currentEx) btn.classList.add('active');
+      if (state.completed.has(idx)) btn.classList.add('completed');
+      if (!isExerciseUnlocked(idx) && idx !== state.currentEx) {
+        btn.disabled = true;
+        btn.title = 'Complete previous exercises to unlock';
+      }
+      btn.onclick = () => { if (!btn.disabled) loadExercise(idx); };
+      nav.appendChild(btn);
+    });
   });
-  const sandboxBtn = document.createElement('button');
-  sandboxBtn.textContent = '06: Sandbox';
-  sandboxBtn.dataset.ex = 'sandbox';
-  if (state.currentEx === 'sandbox') sandboxBtn.classList.add('active');
-  if (!state.completed.has(4)) {
-    sandboxBtn.disabled = true;
-    sandboxBtn.title = 'Complete all exercises to unlock';
+
+  // Sandbox button — appears when Unit 1 is complete
+  if (isUnitComplete(1)) {
+    const sandboxBtn = document.createElement('button');
+    sandboxBtn.textContent = 'SB';
+    sandboxBtn.title = 'Sandbox';
+    sandboxBtn.dataset.ex = 'sandbox';
+    if (state.currentEx === 'sandbox') sandboxBtn.classList.add('active');
+    sandboxBtn.onclick = () => loadSandbox();
+    nav.appendChild(sandboxBtn);
   }
-  sandboxBtn.onclick = () => { if (state.completed.has(4)) loadSandbox(); };
-  nav.appendChild(sandboxBtn);
+
+  renderBadges();
+}
+
+function getEarnedBadges() {
+  const earned = [];
+  // Unit-completion badges (units 1-5)
+  for (const unit of UNITS) {
+    if (unit.id >= 6 || unit.exercises.length === 0) continue;
+    if (unit.exercises.every(ei => state.completed.has(ei))) {
+      if (BADGES[unit.id]) earned.push(BADGES[unit.id]);
+    }
+  }
+  // Badge 27: Full Chain — all exercises through 26 (indices 0-25) complete
+  const allThrough26 = EXERCISES.slice(0, 26).every((_, i) => state.completed.has(i));
+  if (allThrough26 && EXERCISES.length >= 26 && BADGES[27]) earned.push(BADGES[27]);
+  // Badge 28: Certified Hacker — all 28 exercises complete
+  const allComplete = EXERCISES.every((_, i) => state.completed.has(i));
+  if (allComplete && EXERCISES.length >= 28 && BADGES[28]) earned.push(BADGES[28]);
+  return earned;
+}
+
+function renderBadges() {
+  const container = document.getElementById('badges');
+  if (!container) return;
+  container.innerHTML = '';
+  const earned = getEarnedBadges();
+  earned.forEach(b => {
+    const el = document.createElement('span');
+    el.className = 'badge';
+    el.textContent = b.icon + ' ' + b.name;
+    container.appendChild(el);
+  });
+}
+
+function saveProgress() {
+  try {
+    const arr = Array.from(state.completed);
+    localStorage.setItem('memcorr-progress', JSON.stringify(arr));
+  } catch (e) { /* localStorage unavailable */ }
+}
+
+function loadProgress() {
+  try {
+    const data = localStorage.getItem('memcorr-progress');
+    if (data) {
+      const arr = JSON.parse(data);
+      if (Array.isArray(arr)) {
+        arr.forEach(v => state.completed.add(v));
+      }
+    }
+  } catch (e) { /* localStorage unavailable */ }
 }
 
 function renderSource(ex) {
@@ -1334,6 +1480,7 @@ function execCurrentStep() {
         if (ex && ex.winTitle) {
           showSuccess(ex.winTitle, ex.winMsg);
           state.completed.add(state.currentEx);
+          saveProgress();
           renderNav();
         } else if (state.currentEx === 'sandbox') {
           log('success', 'FLAG{sandbox_master}');
@@ -1347,6 +1494,7 @@ function execCurrentStep() {
         if (ex && ex.check && ex.check(sim)) {
           showSuccess(ex.winTitle, ex.winMsg);
           state.completed.add(state.currentEx);
+          saveProgress();
           renderNav();
         }
       }
@@ -1369,6 +1517,7 @@ function doStep() {
       log('info', 'All steps complete.');
       renderLog();
       state.completed.add(state.currentEx);
+      saveProgress();
       renderNav();
       return;
     }
@@ -1401,6 +1550,7 @@ function doStep() {
     renderStack(); renderLog();
     if (state.stepIndex >= ex.steps.length) {
       state.completed.add(state.currentEx);
+      saveProgress();
       renderNav();
     }
     return;
@@ -1608,6 +1758,7 @@ document.addEventListener('keydown', (e) => {
 // ──────────────────────────────────────────────
 // Init
 // ──────────────────────────────────────────────
+loadProgress();
 loadExercise(0);
 </script>
 </body>
