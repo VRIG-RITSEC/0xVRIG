@@ -40,6 +40,7 @@ const ex27FullChain: Exercise = {
   },
   mode: 'final-chain',
   vizMode: 'both',
+  glibcVersion: '2.27',
   heapSize: 256,
   showSymbols: true,
   funcPtrAddr: undefined,

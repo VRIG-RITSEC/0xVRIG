@@ -1,33 +1,45 @@
-const STORAGE_KEY = '0xvrig-progress-v1';
-const OLD_STORAGE_KEY = 'memcorr-progress-v2';
+const SCHEMA_VERSION = 2;
+const STORAGE_KEY = '0xvrig-progress';
+const OLD_KEYS = ['0xvrig-progress-v1', 'memcorr-progress-v2'];
+
+interface StoredProgress {
+  version: number;
+  completed: string[];
+}
 
 export function saveProgress(completed: Set<string>): void {
   try {
-    const arr = Array.from(completed);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-  } catch {
-    // localStorage may not be available (SSR, private mode, etc.)
-  }
+    const data: StoredProgress = { version: SCHEMA_VERSION, completed: Array.from(completed) };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch { /* localStorage unavailable */ }
 }
 
 export function loadProgress(): Set<string> {
   try {
-    // Migrate from old key if present
-    const oldRaw = localStorage.getItem(OLD_STORAGE_KEY);
-    if (oldRaw) {
-      localStorage.setItem(STORAGE_KEY, oldRaw);
-      localStorage.removeItem(OLD_STORAGE_KEY);
+    for (const oldKey of OLD_KEYS) {
+      const oldRaw = localStorage.getItem(oldKey);
+      if (oldRaw) {
+        const arr = JSON.parse(oldRaw);
+        if (Array.isArray(arr)) {
+          const migrated: StoredProgress = { version: SCHEMA_VERSION, completed: arr.filter((v): v is string => typeof v === 'string') };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        }
+        localStorage.removeItem(oldKey);
+      }
     }
 
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) {
-        return new Set(arr.filter((v): v is string => typeof v === 'string'));
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        const migrated: StoredProgress = { version: SCHEMA_VERSION, completed: parsed.filter((v): v is string => typeof v === 'string') };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+        return new Set(migrated.completed);
+      }
+      if (parsed && typeof parsed === 'object' && Array.isArray(parsed.completed)) {
+        return new Set(parsed.completed.filter((v: unknown): v is string => typeof v === 'string'));
       }
     }
-  } catch {
-    // localStorage may not be available
-  }
+  } catch { /* localStorage unavailable */ }
   return new Set();
 }

@@ -18,6 +18,9 @@ import { unit14Exercises } from './unit14-mips';
 import { unit15Exercises } from './unit15-mitigations';
 import { unit16Exercises } from './unit16-advanced';
 import { unit17Exercises } from './unit17-advanced-ii';
+import { unit18Exercises } from './unit18-kernel';
+import { unit19Exercises } from './unit19-glibc-bypass';
+import { unit20Exercises } from './unit20-teaching-gaps';
 
 const ALL_EXERCISES: Exercise[] = [
   ...unitIntroCExercises,
@@ -39,6 +42,9 @@ const ALL_EXERCISES: Exercise[] = [
   ...unit15Exercises,
   ...unit16Exercises,
   ...unit17Exercises,
+  ...unit18Exercises,
+  ...unit19Exercises,
+  ...unit20Exercises,
 ];
 
 const exerciseMap = new Map<string, Exercise>();
@@ -73,6 +79,11 @@ export const UNITS: Unit[] = [
   { id: 'unit16-advanced', name: 'Advanced I', exerciseIds: ['adv-87', 'adv-88', 'adv-89', 'adv-90', 'adv-91', 'adv-92', 'adv-93', 'adv-94'] },
   { id: 'unit17-advanced-ii', name: 'Advanced II', exerciseIds: ['adv2-95', 'adv2-99', 'adv2-98', 'adv2-96', 'adv2-97', 'adv2-100', 'adv2-101', 'adv2-102'] },
   // Challenges
+  // Kernel
+  { id: 'unit18-kernel', name: 'Kernel PWN', exerciseIds: ['kern-103', 'kern-104', 'kern-105', 'kern-106', 'kern-107'] },
+  { id: 'unit19-glibc-bypass', name: 'glibc Version Bypasses', exerciseIds: ['glibc-108', 'glibc-109', 'glibc-110'] },
+  { id: 'unit20-teaching-gaps', name: 'Exploitation Techniques', exerciseIds: ['gap-111', 'gap-112', 'gap-113', 'gap-114', 'gap-115'] },
+  // Challenges
   { id: 'unit10-challenges', name: 'CTF Lab', exerciseIds: ['ctf-47', 'ctf-48', 'ctf-49', 'ctf-50', 'ctf-51', 'ctf-52'] },
 ];
 
@@ -84,6 +95,9 @@ export const TRACKS: Track[] = [
   { id: 'architectures', name: 'Architectures', unitIds: ['unit13-arm', 'unit14-mips'] },
   { id: 'defense', name: 'Defense & Theory', unitIds: ['unit15-mitigations'] },
   { id: 'advanced', name: 'Advanced', unitIds: ['unit6-final', 'unit16-advanced', 'unit17-advanced-ii'] },
+  { id: 'kernel', name: 'Kernel', unitIds: ['unit18-kernel'] },
+  { id: 'glibc-bypass', name: 'glibc Bypasses', unitIds: ['unit19-glibc-bypass'] },
+  { id: 'techniques', name: 'Exploitation Techniques', unitIds: ['unit20-teaching-gaps'] },
   { id: 'challenges', name: 'Challenges', unitIds: ['unit10-challenges'] },
 ];
 
@@ -246,6 +260,15 @@ export const BADGES: Badge[] = [
         x64.exerciseIds.every(id => completed.has(id)) &&
         arm.exerciseIds.every(id => completed.has(id)) &&
         mips.exerciseIds.every(id => completed.has(id));
+    },
+  },
+  {
+    id: 'kernel-hacker',
+    name: 'Kernel Hacker',
+    icon: '\u{1F451}',
+    condition: (completed) => {
+      const unit = UNITS.find(u => u.id === 'unit18-kernel');
+      return !!unit && unit.exerciseIds.length > 0 && unit.exerciseIds.every(id => completed.has(id));
     },
   },
   {

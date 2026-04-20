@@ -38,6 +38,7 @@ const ex20FastbinDup: Exercise = {
   },
   mode: 'heap-fastbin-dup',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 512,
   showSymbols: true,
   funcPtrAddr: 0x0804a040,

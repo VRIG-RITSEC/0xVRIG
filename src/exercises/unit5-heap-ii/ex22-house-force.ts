@@ -32,6 +32,7 @@ const ex22HouseForce: Exercise = {
   },
   mode: 'heap-house-force',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 512,
   showSymbols: true,
   showCalc: true,

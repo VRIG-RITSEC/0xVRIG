@@ -27,6 +27,7 @@ const ex18HeapOverflow: Exercise = {
   },
   mode: 'heap-overflow',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 256,
   showSymbols: true,
   check(_, heap, symbols) {

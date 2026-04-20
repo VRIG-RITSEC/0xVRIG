@@ -1,4 +1,3 @@
-import { HeapSim } from '@/engine/simulators/HeapSim';
 import { hex8 } from '@/engine/helpers';
 
 export interface HeapGuidedStep {
@@ -107,7 +106,7 @@ export interface HeapStepResult {
 
 export function executeHeapGuidedStep(
   step: HeapGuidedStep,
-  heap: HeapSim,
+  heap: any,
   heapNames: Record<string, number>,
 ): HeapStepResult {
   const result: HeapStepResult = { logs: [], heapNames: { ...heapNames } };
@@ -157,7 +156,7 @@ export function executeHeapGuidedStep(
 
 export function heapUafSubmit(
   bytes: number[],
-  heap: HeapSim,
+  heap: any,
   heapNames: Record<string, number>,
   symbols: Record<string, number>,
 ): HeapStepResult {
@@ -194,7 +193,7 @@ export function heapUafSubmit(
 
 export function heapDoubleFreeSubmit(
   bytes: number[],
-  heap: HeapSim,
+  heap: any,
   heapNames: Record<string, number>,
   symbols: Record<string, number>,
   funcPtrAddr: number,
@@ -231,7 +230,7 @@ export function heapDoubleFreeSubmit(
 
 export function heapOverflowSubmit(
   bytes: number[],
-  heap: HeapSim,
+  heap: any,
   heapNames: Record<string, number>,
   symbols: Record<string, number>,
 ): HeapStepResult {
@@ -279,7 +278,7 @@ export function heapOverflowSubmit(
 
 export function heapTcachePoisonSubmit(
   bytes: number[],
-  heap: HeapSim,
+  heap: any,
   heapNames: Record<string, number>,
   symbols: Record<string, number>,
   funcPtrAddr: number,
@@ -314,7 +313,7 @@ export function heapTcachePoisonSubmit(
 
 export function heapFastbinDupSubmit(
   bytes: number[],
-  heap: HeapSim,
+  heap: any,
   heapNames: Record<string, number>,
   symbols: Record<string, number>,
   funcPtrAddr: number,
@@ -353,7 +352,7 @@ export function heapFastbinDupSubmit(
 
 export function heapUnsortedBinSubmit(
   bytes: number[],
-  heap: HeapSim,
+  heap: any,
   heapNames: Record<string, number>,
   symbols: Record<string, number>,
   funcPtrAddr: number,

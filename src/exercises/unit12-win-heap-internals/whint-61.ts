@@ -30,6 +30,7 @@ const exercise: Exercise = {
   mode: 'step',
   vizMode: 'heap',
   heapSize: 2048,
+  winVersion: 'win10',
   steps: [
     {
       action: 'init',

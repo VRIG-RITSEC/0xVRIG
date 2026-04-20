@@ -15,8 +15,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  build-deploy:
+    name: Build & Deploy
+    needs: validate
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,16 +48,15 @@ jobs:
       - run: npm run build
       - run: touch out/.nojekyll
 
+      - name: Verify output
+        run: |
+          echo "Build size: $(du -sh out/ | cut -f1)"
+          COUNT=$(find out/exercise -mindepth 1 -maxdepth 1 -type d | wc -l)
+          echo "Exercises: $COUNT"
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - id: deployment
         uses: actions/deploy-pages@v4

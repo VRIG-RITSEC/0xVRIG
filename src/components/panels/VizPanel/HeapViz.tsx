@@ -67,10 +67,12 @@ export default function HeapViz() {
   const isWindows = ex?.unitId?.includes('win-heap') || ex?.windowsHeapType != null;
   const showLabels = ex?.showLabels !== false;
   const chunks = heap.getChunksForDisplay();
-  const freeLists = heap.getFreeLists();
-  const hasFreeLists = Object.keys(freeLists.tcache).length > 0
-    || Object.keys(freeLists.fastbins).length > 0
-    || freeLists.unsorted.length > 0;
+  const freeLists = heap.getFreeLists() as any;
+  const hasFreeLists = (freeLists.tcache && Object.keys(freeLists.tcache).length > 0)
+    || (freeLists.fastbins && Object.keys(freeLists.fastbins).length > 0)
+    || (freeLists.unsorted && freeLists.unsorted.length > 0)
+    || (freeLists.listHints && Object.keys(freeLists.listHints).length > 0)
+    || (freeLists.lfhBuckets && Object.keys(freeLists.lfhBuckets).length > 0);
 
   const tcacheLabel = isWindows ? 'LFH Bucket' : 'tcache';
   const fastbinLabel = isWindows ? 'Lookaside' : 'fastbin';

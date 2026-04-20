@@ -391,7 +391,7 @@ export class ArmEmulator implements Emulator {
    * Returns [baseMnemonic, conditionCode, hasSuffix_S].
    */
   private parseMnemonic(raw: string): { base: string; cond: ConditionCode; setFlags: boolean } {
-    let mnem = raw.toLowerCase().trim();
+    const mnem = raw.toLowerCase().trim();
 
     /* Check for S suffix (e.g. "adds", "subs") -- must come before
        condition stripping so that "addseq" parses correctly. */

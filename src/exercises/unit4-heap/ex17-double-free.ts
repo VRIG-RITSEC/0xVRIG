@@ -29,6 +29,7 @@ const ex17DoubleFree: Exercise = {
   },
   mode: 'heap-double-free',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 256,
   showSymbols: true,
   funcPtrAddr: 0x0804a040,

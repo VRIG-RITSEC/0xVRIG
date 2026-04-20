@@ -32,6 +32,7 @@ export const win44: Exercise = {
   mode: 'heap-overflow',
   vizMode: 'heap',
   heapSize: 256,
+  winVersion: 'win10',
   showSymbols: true,
   showCalc: true,
   check(_, heap, symbols) {

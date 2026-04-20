@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  test:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage
+      - name: Upload coverage
+        if: matrix.node == 20
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+
+  build:
+    name: Build
+    needs: [lint, typecheck, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Check output size
+        run: |
+          SIZE=$(du -sb out/ | cut -f1)
+          echo "Build output: $(du -sh out/ | cut -f1)"
+          if [ "$SIZE" -gt 52428800 ]; then
+            echo "::error::Build output exceeds 50MB ($SIZE bytes)"
+            exit 1
+          fi
+      - name: Count exercises
+        run: |
+          COUNT=$(find out/exercise -mindepth 1 -maxdepth 1 -type d | wc -l)
+          echo "Exercise pages: $COUNT"
+          if [ "$COUNT" -lt 100 ]; then
+            echo "::error::Expected 100+ exercise pages, got $COUNT"
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: out/
+          retention-days: 3
+
+  registry-integrity:
+    name: Registry Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Verify all exercises compile and register
+        run: npx vitest run src/exercises/__tests__/registry.test.ts

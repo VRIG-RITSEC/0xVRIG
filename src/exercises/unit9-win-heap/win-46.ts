@@ -32,6 +32,7 @@ export const win46: Exercise = {
   mode: 'heap-uaf',
   vizMode: 'heap',
   heapSize: 256,
+  winVersion: 'win7',
   showSymbols: true,
   showCalc: true,
   check(_, heap, symbols) {

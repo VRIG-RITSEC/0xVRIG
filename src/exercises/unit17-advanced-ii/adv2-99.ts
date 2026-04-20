@@ -37,6 +37,7 @@ const adv299: Exercise = {
   },
   mode: 'heap-overflow',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 512,
   showSymbols: true,
   check(_, heap, symbols) {

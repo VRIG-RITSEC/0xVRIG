@@ -23,6 +23,7 @@ const ex15TheHeap: Exercise = {
   },
   mode: 'step',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 256,
   steps: [
     { action: 'init', log: ['info', 'The heap starts as one big block of empty memory \u2014 the "top chunk" (leftover space). Click Step to watch malloc() and free() in action.'] },

@@ -21,7 +21,7 @@ const KW = new Set([
 ]);
 const FN = new Set(['main','vuln','win','normal','exploit','shellcode','gadget','pivot','target','handler','callback']);
 
-const TOKEN_RE = /\/\/.*$|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|#\w+|<[\w.\/]+>|\b\w+\b/gm;
+const TOKEN_RE = /\/\/.*$|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|#\w+|<[\w./]+>|\b\w+\b/gm;
 
 function escHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

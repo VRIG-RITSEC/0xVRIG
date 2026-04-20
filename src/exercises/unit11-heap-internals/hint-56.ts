@@ -28,6 +28,7 @@ const hint56: Exercise = {
   },
   mode: 'step',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 512,
   steps: [
     {

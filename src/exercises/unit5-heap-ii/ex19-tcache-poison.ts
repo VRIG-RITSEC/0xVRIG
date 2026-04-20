@@ -34,6 +34,7 @@ const ex19TcachePoison: Exercise = {
   },
   mode: 'heap-tcache-poison',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 256,
   showSymbols: true,
   funcPtrAddr: 0x0804a040,

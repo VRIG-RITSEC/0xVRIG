@@ -6,6 +6,7 @@ import { reducer, createInitialState } from './reducer';
 import { saveProgress } from './persistence';
 import { StackSim } from '@/engine/simulators/StackSim';
 import { HeapSim } from '@/engine/simulators/HeapSim';
+import { WinHeapSim } from '@/engine/simulators/WinHeapSim';
 import { Emulator } from '@/engine/emulator-interface';
 import { AuxViz } from '@/engine/simulators/AuxViz';
 import { Exercise } from '@/exercises/types';
@@ -15,7 +16,7 @@ interface ExerciseContextValue {
   state: AppState;
   dispatch: React.Dispatch<Action>;
   stackSim: React.MutableRefObject<StackSim | null>;
-  heapSim: React.MutableRefObject<HeapSim | null>;
+  heapSim: React.MutableRefObject<HeapSim | WinHeapSim | null>;
   asmEmulator: React.MutableRefObject<Emulator | null>;
   auxViz: React.MutableRefObject<AuxViz>;
   currentExercise: Exercise | null;
@@ -26,7 +27,7 @@ const ExerciseContext = createContext<ExerciseContextValue | null>(null);
 export function ExerciseContextProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, createInitialState);
   const stackSim = useRef<StackSim | null>(null);
-  const heapSim = useRef<HeapSim | null>(null);
+  const heapSim = useRef<HeapSim | WinHeapSim | null>(null);
   const asmEmulator = useRef<Emulator | null>(null);
   const auxViz = useRef<AuxViz>(new AuxViz());
 

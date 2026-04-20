@@ -455,7 +455,7 @@ export function execCurrentStep(
     let esp = retOffset + 4;
     let eip = retAddr;
     let chainOk = true;
-    let maxSteps = 20;
+    const maxSteps = 20;
     let stepCount = 0;
 
     let ropEax = state.ropEax ?? 0;

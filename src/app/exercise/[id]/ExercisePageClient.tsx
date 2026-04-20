@@ -5,6 +5,7 @@ import { useExerciseContext } from '@/state/ExerciseContext';
 import { getExercise } from '@/exercises/registry';
 import { StackSim } from '@/engine/simulators/StackSim';
 import { HeapSim } from '@/engine/simulators/HeapSim';
+import { WinHeapSim } from '@/engine/simulators/WinHeapSim';
 import { X86Emulator } from '@/engine/x86/emulator';
 import { ArmEmulator } from '@/engine/arm/emulator';
 import { MipsEmulator } from '@/engine/mips/emulator';
@@ -13,18 +14,34 @@ import SourcePanel from '@/components/panels/SourcePanel/SourcePanel';
 import VizPanel from '@/components/panels/VizPanel/VizPanel';
 import InputPanel from '@/components/panels/InputPanel/InputPanel';
 import LogPanel from '@/components/panels/LogPanel/LogPanel';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 function retAddrInMain(symbols: Record<string, number>): number {
   return (symbols.main || BASE_SYMBOLS.main) + 0x25;
 }
 
+const CODE_SYMBOLS = ['main', 'win', 'vuln', 'normal'];
+const LIBC_SYMBOLS = ['system', 'binsh'];
+const STACK_SYMBOLS = ['main_ret'];
+
 function computeSymbols(exercise: ReturnType<typeof getExercise>): Record<string, number> {
   const symbols = { ...BASE_SYMBOLS };
 
   if (exercise?.aslr) {
-    const offset = ((Math.random() * 0x10000) >>> 0) & ~0xfff;
+    const codeOffset = ((Math.random() * 0x200000) >>> 0) & ~0xfff;
+    const libcOffset = ((Math.random() * 0x10000000) >>> 0) & ~0xfff;
+    const stackOffset = ((Math.random() * 0x800000) >>> 0) & ~0xfff;
+
     for (const key of Object.keys(symbols)) {
-      symbols[key] = (symbols[key] + offset) >>> 0;
+      if (CODE_SYMBOLS.includes(key)) {
+        symbols[key] = (symbols[key] + codeOffset) >>> 0;
+      } else if (LIBC_SYMBOLS.includes(key)) {
+        symbols[key] = (symbols[key] + libcOffset) >>> 0;
+      } else if (STACK_SYMBOLS.includes(key)) {
+        symbols[key] = (symbols[key] + stackOffset) >>> 0;
+      } else {
+        symbols[key] = (symbols[key] + codeOffset) >>> 0;
+      }
     }
   }
 
@@ -83,9 +100,11 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
       stackSim.current = null;
     }
 
-    // Initialize HeapSim
+    // Initialize HeapSim (or WinHeapSim for Windows exercises)
     if (needsHeap) {
-      const heap = new HeapSim(exercise.heapSize ?? 256);
+      const heap = exercise.winVersion
+        ? new WinHeapSim(exercise.heapSize ?? 256, exercise.winVersion)
+        : new HeapSim(exercise.heapSize ?? 256, exercise.glibcVersion ?? '2.27');
 
       if (exercise.mode === 'heap-uaf') {
         const userResult = heap.malloc(16);
@@ -250,13 +269,13 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
     }
 
     dispatch({ type: 'LOAD_EXERCISE', exerciseId: id });
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id]); // eslint-disable-line
 
   return (
     <>
       <SourcePanel />
-      <VizPanel />
-      <InputPanel />
+      <ErrorBoundary><VizPanel /></ErrorBoundary>
+      <ErrorBoundary><InputPanel /></ErrorBoundary>
       <LogPanel />
     </>
   );

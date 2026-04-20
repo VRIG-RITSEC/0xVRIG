@@ -35,6 +35,7 @@ const ex23HouseSpirit: Exercise = {
   },
   mode: 'heap-house-spirit',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 512,
   showSymbols: true,
   funcPtrAddr: 0x0804a040,

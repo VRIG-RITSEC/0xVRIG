@@ -34,6 +34,7 @@ const ex24HouseOrange: Exercise = {
   },
   mode: 'heap-house-orange',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 512,
   showSymbols: true,
   showCalc: true,

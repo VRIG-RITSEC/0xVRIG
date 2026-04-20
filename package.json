@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "deploy": "next build && touch out/.nojekyll"
+    "deploy": "next build && touch out/.nojekyll",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/"
   },
   "dependencies": {
     "next": "^15.5.15",
@@ -14,9 +19,14 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5"
+    "@vitest/coverage-v8": "^2.1.9",
+    "eslint": "^9.39.4",
+    "typescript": "^5",
+    "typescript-eslint": "^8.58.2",
+    "vitest": "^2.1.9"
   }
 }

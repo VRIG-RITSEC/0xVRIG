@@ -37,6 +37,7 @@ export const win45: Exercise = {
   mode: 'heap-double-free',
   vizMode: 'heap',
   heapSize: 256,
+  winVersion: 'win7',
   showSymbols: true,
   showCalc: true,
   check(_, heap, symbols) {

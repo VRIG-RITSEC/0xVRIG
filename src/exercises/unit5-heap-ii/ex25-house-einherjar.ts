@@ -36,6 +36,7 @@ const ex25HouseEinherjar: Exercise = {
   },
   mode: 'heap-house-einherjar',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 512,
   showSymbols: true,
   funcPtrAddr: 0x0804a040,

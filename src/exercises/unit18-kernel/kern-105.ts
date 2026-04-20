@@ -1,0 +1,56 @@
+import { Exercise } from '../types';
+
+const kern105: Exercise = {
+  id: 'kern-105',
+  unitId: 'unit18-kernel',
+  title: '105: Kernel UAF via Slab Spray',
+  desc: 'A kernel module allocates a struct with a <strong>function pointer</strong>, then frees it but keeps the reference. You can spray the SLUB allocator with <code>msgsnd()</code> data to reclaim the freed object. Place the address of <code>win()</code> where the callback pointer was.',
+  source: {
+    c: [
+      { text: '#include <linux/module.h>', cls: '' },
+      { text: '#include <linux/slab.h>', cls: '' },
+      { text: '', cls: '' },
+      { text: 'struct vuln_obj {', cls: '' },
+      { text: '    void (*callback)(void);', cls: 'highlight' },
+      { text: '    char data[12];', cls: '' },
+      { text: '};', cls: '' },
+      { text: '', cls: '' },
+      { text: 'static struct vuln_obj *obj;', cls: '' },
+      { text: '', cls: '' },
+      { text: 'static int vuln_open(struct inode *i,', cls: '', fn: true },
+      { text: '    struct file *f) {', cls: '' },
+      { text: '    obj = kmalloc(16, GFP_KERNEL);', cls: '' },
+      { text: '    obj->callback = default_handler;', cls: '' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'static int vuln_release(struct inode *i,', cls: '', fn: true },
+      { text: '    struct file *f) {', cls: '' },
+      { text: '    kfree(obj);', cls: 'highlight vuln' },
+      { text: '    // BUG: obj not set to NULL!', cls: 'cmt' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+      { text: '', cls: '' },
+      { text: 'static long vuln_ioctl(struct file *f,', cls: '', fn: true },
+      { text: '    unsigned int cmd, unsigned long arg) {', cls: '' },
+      { text: '    // User sprays via msgsnd() to reclaim slab', cls: 'cmt' },
+      { text: '    obj->callback();', cls: 'highlight vuln' },
+      { text: '    // Calls attacker-controlled pointer!', cls: 'cmt' },
+      { text: '    return 0;', cls: '' },
+      { text: '}', cls: '' },
+    ],
+  },
+  mode: 'heap-uaf',
+  vizMode: 'heap',
+  glibcVersion: '2.27',
+  heapSize: 512,
+  showSymbols: true,
+  check(_, heap, symbols) {
+    return heap?.funcPtrs?.callback?.current === symbols.win;
+  },
+  winTitle: 'FLAG{kernel_slab_uaf}',
+  winMsg: 'The kernel freed the vuln_obj struct but kept using the stale pointer. You sprayed the SLUB allocator with msgsnd() data to reclaim the same slab slot. Your data overwrote the callback function pointer. When the ioctl called obj->callback(), it jumped to your chosen address. Kernel UAF + slab spray is one of the most powerful and common kernel exploitation primitives.',
+  realWorld: 'CVE-2021-22555: A 15-year-old Netfilter slab out-of-bounds write in the Linux kernel was exploited via heap spray with msgsnd() to achieve local privilege escalation from an unprivileged user namespace.',
+};
+
+export default kern105;

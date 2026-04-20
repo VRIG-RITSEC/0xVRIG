@@ -34,6 +34,7 @@ const ex28BlindChain: Exercise = {
   },
   mode: 'final-blind',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 512,
   showSymbols: false,
   showLabels: false,

@@ -32,6 +32,7 @@ export const ctf51: Exercise = {
   },
   mode: 'heap-tcache-poison',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 256,
   showSymbols: true,
   showCalc: true,

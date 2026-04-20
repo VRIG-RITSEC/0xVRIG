@@ -32,6 +32,7 @@ const ex16Uaf: Exercise = {
   },
   mode: 'heap-uaf',
   vizMode: 'heap',
+  glibcVersion: '2.27',
   heapSize: 256,
   showSymbols: true,
   check(_, heap, symbols) {

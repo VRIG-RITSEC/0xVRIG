@@ -81,10 +81,11 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'SET_RUNNING':
       return { ...state, running: action.running };
 
-    case 'EXERCISE_COMPLETED':
+    case 'EXERCISE_COMPLETED': {
       const newCompleted = new Set(state.completed);
       newCompleted.add(action.exerciseId);
       return { ...state, completed: newCompleted };
+    }
 
     case 'SET_HEAP_PHASE':
       return { ...state, heapPhase: action.phase };

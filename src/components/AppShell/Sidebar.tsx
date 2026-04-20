@@ -20,14 +20,14 @@ function loadSidebarState(): SidebarState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch { /* localStorage unavailable */ }
   return { collapsed: false, openTracks: {}, openUnits: {} };
 }
 
 function saveSidebarState(s: SidebarState) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
-  } catch {}
+  } catch { /* localStorage unavailable */ }
 }
 
 export default function Sidebar() {
