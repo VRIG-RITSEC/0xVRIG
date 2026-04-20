@@ -7,6 +7,9 @@ const ex19TcachePoison: Exercise = {
   desc: 'The <strong>tcache</strong> is a per-thread cache of recently freed chunks. Each bin is a singly-linked list \u2014 freed chunks have a <em>forward pointer (fd)</em> that points to the next free chunk. If you can overwrite that fd pointer (via a use-after-free or overflow), the allocator will follow it and return <strong>any address you choose</strong> as a valid allocation.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: 'void normal() { printf("Normal\\n"); }', cls: '' },
       { text: '', cls: '' },

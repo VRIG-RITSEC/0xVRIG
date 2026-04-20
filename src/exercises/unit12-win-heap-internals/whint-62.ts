@@ -7,6 +7,8 @@ const exercise: Exercise = {
   desc: '<b>Goal:</b> Understand how Windows protects heap chunk headers using XOR encoding. Each <strong>_HEAP_ENTRY</strong> header is XORed with a per-heap cookie stored in <code>_HEAP.Encoding</code>. This means overwriting header bytes with attacker-controlled data produces garbage when decoded, causing the heap manager to detect corruption and terminate the process.',
   source: {
     c: [
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// _HEAP_ENTRY encoding (NT Heap)', cls: 'cmt' },
       { text: '// Header is XORed with heap cookie', cls: 'cmt' },
       { text: '', cls: '' },

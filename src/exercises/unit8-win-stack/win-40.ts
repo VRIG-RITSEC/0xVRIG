@@ -7,6 +7,9 @@ export const win40: Exercise = {
   desc: 'Classic SEH exploit! The buffer is 16 bytes. Overflow it to overwrite the return address with <code>win()</code>. In a real SEH exploit you\'d overwrite the handler field with a POP POP RET gadget address and put a short jump in nSEH, but here just reach the return address.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <windows.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// Classic SEH Overwrite Pattern', cls: 'comment' },
       { text: '// Real exploit: overflow → nSEH (jmp) + handler (PPR)', cls: 'comment' },
       { text: '// Trigger exception → PPR → jmp → shellcode', cls: 'comment' },

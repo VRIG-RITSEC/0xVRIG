@@ -7,6 +7,9 @@ const ex18HeapOverflow: Exercise = {
   desc: 'Just like stack overflows, heap blocks can overflow into each other. If you write past the end of block A, you overwrite block B\'s header and data. Corrupt B\'s data (which contains a function pointer) to redirect execution.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: 'void normal() { printf("Normal\\n"); }', cls: '' },
       { text: '', cls: '' },

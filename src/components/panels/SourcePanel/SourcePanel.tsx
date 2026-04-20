@@ -23,12 +23,16 @@ const FN = new Set(['main','vuln','win','normal','exploit','shellcode','gadget',
 
 const TOKEN_RE = /\/\/.*$|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|#\w+|<[\w.\/]+>|\b\w+\b/gm;
 
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function highlightSyntax(text: string): string {
   return text.replace(TOKEN_RE, (tok) => {
-    if (tok.startsWith('//')) return `<span class="src-cmt">${tok}</span>`;
-    if (tok.startsWith('"') || tok.startsWith("'")) return `<span class="src-str">${tok}</span>`;
-    if (tok.startsWith('#')) return `<span class="src-kw">${tok}</span>`;
-    if (tok.startsWith('<') && tok.endsWith('>')) return `<span class="src-str">${tok}</span>`;
+    if (tok.startsWith('//')) return `<span class="src-cmt">${escHtml(tok)}</span>`;
+    if (tok.startsWith('"') || tok.startsWith("'")) return `<span class="src-str">${escHtml(tok)}</span>`;
+    if (tok.startsWith('#')) return `<span class="src-kw">${escHtml(tok)}</span>`;
+    if (tok.startsWith('<') && tok.endsWith('>')) return `<span class="src-str">${escHtml(tok)}</span>`;
     if (KW.has(tok)) return `<span class="src-kw">${tok}</span>`;
     if (FN.has(tok)) return `<span class="src-fn">${tok}</span>`;
     return tok;

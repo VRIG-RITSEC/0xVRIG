@@ -7,6 +7,9 @@ const ex25HouseEinherjar: Exercise = {
   desc: 'An <strong>off-by-one null byte</strong> overflow clears the PREV_IN_USE flag of the next chunk. When that chunk is freed, the allocator thinks the previous chunk is also free and does <strong>backward consolidation</strong> \u2014 merging them into one huge chunk. By crafting a fake prev_size, you control where the merged chunk starts, giving you an overlapping allocation.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: '', cls: '' },
       { text: 'void (**handler)();  // at 0x0804a040', cls: '' },

@@ -7,6 +7,8 @@ export const win46: Exercise = {
   desc: 'Custom heaps created with <code>HeapCreate(HEAP_NO_SERIALIZE, ...)</code> skip thread locking and may lack LFH mitigations. This is a use-after-free on a private heap — free the object, allocate a note in the same spot, write <code>win()</code> address to hijack the function pointer.',
   source: {
     c: [
+      { text: '#include <windows.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// Private Heap — fewer mitigations', cls: 'comment' },
       { text: '', cls: '' },
       { text: 'struct Handler {', cls: '' },

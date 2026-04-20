@@ -7,6 +7,9 @@ const ex16Uaf: Exercise = {
   desc: 'A <strong>use-after-free (UAF)</strong> happens when the program frees memory but keeps using the old pointer. If new data gets allocated in that same spot, the old pointer now points to YOUR data. Here, a struct with a function pointer gets freed, then a note with the same size takes its place.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'struct User {', cls: '' },
       { text: '    void (*action)();', cls: 'highlight' },
       { text: '    char name[12];', cls: '' },

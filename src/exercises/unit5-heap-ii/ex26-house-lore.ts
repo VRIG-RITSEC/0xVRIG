@@ -7,6 +7,9 @@ const ex26HouseLore: Exercise = {
   desc: 'The <strong>smallbin</strong> is a doubly-linked list with both fd and bk pointers. When malloc removes a chunk from a smallbin, it checks that <code>victim->bk->fd == victim</code> (a consistency check). By corrupting a freed chunk\'s bk to point to a <strong>fake chunk</strong> whose fd points back to the real chunk, you pass the check. Two mallocs later, the allocator hands you the fake chunk \u2014 at YOUR chosen address.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: '', cls: '' },
       { text: 'void (**handler)();  // at 0x0804a040', cls: '' },

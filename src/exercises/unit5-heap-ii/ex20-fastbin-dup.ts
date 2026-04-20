@@ -7,6 +7,9 @@ const ex20FastbinDup: Exercise = {
   desc: 'Fastbins are used for small chunks when the tcache is full. Fastbins only check if the chunk being freed is the <strong>same as the head</strong> of the list. By freeing A, then B, then A again, you bypass the check and create a <strong>cycle</strong>: A \u2192 B \u2192 A \u2192 B \u2192 ... This lets you get two allocations at the same address and control where the third one lands.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: '', cls: '' },
       { text: 'void (**handler)();  // func ptr table', cls: '' },

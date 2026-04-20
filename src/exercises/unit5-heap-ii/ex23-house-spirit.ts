@@ -7,6 +7,9 @@ const ex23HouseSpirit: Exercise = {
   desc: 'Instead of overflowing TO a chunk, what if you could create a chunk FROM NOTHING? <strong>House of Spirit</strong> crafts a fake chunk in memory (e.g. on the stack) by writing the right header values. When you call <code>free()</code> on the fake chunk\'s address, the allocator accepts it \u2014 it just trusts the metadata! The next <code>malloc()</code> of that size returns YOUR chosen address.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: '', cls: '' },
       { text: 'void (**handler)();  // at 0x0804a040', cls: '' },

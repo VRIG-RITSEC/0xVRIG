@@ -122,6 +122,9 @@ export class HeapSim {
       this.topSize -= chunkSize;
       this.chunks.set(addr, { size: chunkSize, allocated: true, dataStart: addr + this.HEADER_SIZE });
       this._writeChunkHeader(addr, chunkSize, true);
+      if (this.topSize > 0) {
+        this._writePrevSize(this.topAddr, chunkSize);
+      }
       return { addr, dataAddr: addr + this.HEADER_SIZE, dataSize };
     }
 
@@ -141,6 +144,11 @@ export class HeapSim {
     const dataStart = chunkAddr + this.HEADER_SIZE;
 
     this._writeChunkHeader(chunkAddr, chunkSize, false);
+
+    const nextAddr = chunkAddr + chunkSize;
+    if (nextAddr < this.memorySize) {
+      this._writePrevSize(nextAddr, chunkSize);
+    }
 
     if (!this.tcache[chunkSize]) this.tcache[chunkSize] = [];
     if (this.tcache[chunkSize].length < 7) {
@@ -185,6 +193,16 @@ export class HeapSim {
   _writeChunkHeader(addr: number, size: number, inUse: boolean): void {
     const sizeField = inUse ? (size | 1) : (size & ~1);
     this._writeLE(addr + 4, sizeField, 4);
+    for (let i = 0; i < this.HEADER_SIZE; i++) {
+      this.written[addr + i] = 1;
+    }
+  }
+
+  _writePrevSize(addr: number, prevSize: number): void {
+    this._writeLE(addr, prevSize, 4);
+    for (let i = 0; i < 4; i++) {
+      this.written[addr + i] = 1;
+    }
   }
 
   write(offset: number, bytes: number[]): void {

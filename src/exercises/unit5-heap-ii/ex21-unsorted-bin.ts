@@ -7,6 +7,9 @@ const ex21UnsortedBin: Exercise = {
   desc: 'When large chunks (bigger than 64 bytes) are freed, they go into the <strong>unsorted bin</strong> \u2014 a doubly-linked list with both forward (fd) and backward (bk) pointers. When a chunk is removed from the unsorted bin during malloc, the allocator writes the bin address to <code>bk-&gt;fd</code>. By corrupting the bk pointer via a UAF, you control <strong>where</strong> that write goes \u2014 a powerful arbitrary write primitive.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: '', cls: '' },
       { text: 'void (**handler)();  // at 0x0804a040', cls: '' },

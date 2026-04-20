@@ -7,6 +7,9 @@ const ex24HouseOrange: Exercise = {
   desc: 'What if there\'s no <code>free()</code> call anywhere in the program? <strong>House of Orange</strong> corrupts the top chunk size via overflow, then a large <code>malloc()</code> that exceeds the (now-small) top triggers <code>sysmalloc</code>, which frees the old top chunk into the unsorted bin. Now you have a freed chunk to exploit \u2014 without ever calling free()!',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: '', cls: '' },
       { text: 'void (**handler)();  // at 0x0804a040', cls: '' },

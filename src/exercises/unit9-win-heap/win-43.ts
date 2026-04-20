@@ -7,6 +7,8 @@ export const win43: Exercise = {
   desc: 'The Windows Low Fragmentation Heap (LFH) is like glibc\'s tcache — freed chunks get reused. A <b>User</b> struct with a function pointer is freed, then a same-size <b>Note</b> is allocated in the same spot. Write the address of <code>win()</code> into the first 4 bytes to hijack the function pointer.',
   source: {
     c: [
+      { text: '#include <windows.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// LFH — Low Fragmentation Heap', cls: 'comment' },
       { text: '// Like tcache: freed chunks get reused', cls: 'comment' },
       { text: '', cls: '' },

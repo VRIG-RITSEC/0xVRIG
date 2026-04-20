@@ -7,6 +7,9 @@ const ex27FullChain: Exercise = {
   desc: 'Real exploits chain multiple bugs together. This program has <strong>four</strong> vulnerabilities: an integer overflow in the allocation size, an info leak that reveals a heap address, a heap overflow that lets you write past the buffer, and a function pointer that gets called at the end. Chain all four to redirect execution to <code>win()</code>.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: 'void normal() { printf("OK\\n"); }', cls: '' },
       { text: '', cls: '' },

@@ -7,6 +7,9 @@ const ex17DoubleFree: Exercise = {
   desc: 'What happens if you free the same block <strong>twice</strong>? The recycling list gets confused \u2014 the freed block points to itself, creating a loop. Then when you malloc, you can make the allocator return any address you want by overwriting the forward pointer.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: '', cls: '' },
       { text: 'int main() {', cls: '' },

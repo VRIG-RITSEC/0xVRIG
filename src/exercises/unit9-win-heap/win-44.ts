@@ -7,6 +7,8 @@ export const win44: Exercise = {
   desc: 'LFH heap overflow — chunk A is adjacent to chunk B which contains a function pointer. Overflow A\'s data into B to overwrite the function pointer with <code>win()</code>. Despite LFH randomization, heap spraying makes adjacent placement likely.',
   source: {
     c: [
+      { text: '#include <windows.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// LFH Heap Overflow', cls: 'comment' },
       { text: '// Spray heap to get adjacent chunks', cls: 'comment' },
       { text: '', cls: '' },

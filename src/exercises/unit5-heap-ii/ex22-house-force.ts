@@ -7,6 +7,9 @@ const ex22HouseForce: Exercise = {
   desc: 'The <strong>top chunk</strong> (wilderness) is the big chunk at the end of the heap that gets carved up by malloc. If you can overflow into the top chunk and set its size to <code>0xFFFFFFFF</code> (-1 in unsigned), the allocator thinks it has unlimited memory. Then a carefully calculated <code>malloc(evil_size)</code> moves the top chunk pointer to your target. The next allocation lands right on top of anything you want!',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: 'void win() { printf("FLAG\\n"); }', cls: '' },
       { text: '', cls: '' },
       { text: 'void (**handler)();  // at 0x0804a040', cls: '' },

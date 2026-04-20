@@ -7,6 +7,9 @@ export const win42: Exercise = {
   desc: 'Control Flow Guard (CFG) validates indirect call targets. But <b>direct return address overwrites bypass CFG</b> — CFG only protects forward-edge calls, not backward-edge returns. Overflow the 12-byte buffer to overwrite the return address. CFG can\'t stop this!',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <windows.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// CFG — Control Flow Guard', cls: 'comment' },
       { text: '// Protects: indirect calls (call [eax])', cls: 'comment' },
       { text: '// Does NOT protect: return addresses!', cls: 'comment' },

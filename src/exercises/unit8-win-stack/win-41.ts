@@ -7,6 +7,8 @@ export const win41: Exercise = {
   desc: 'SafeSEH validates handlers against a compile-time table. But the stack overflow still works! This exercise has a <b>stack canary</b> protecting the buffer — you need to preserve the canary value (shown in the symbol table) while overwriting the return address. Like bypassing SafeSEH by keeping protections intact.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// SafeSEH + Stack Canary', cls: 'comment' },
       { text: '// Must preserve canary while overwriting ret', cls: 'comment' },
       { text: '', cls: '' },

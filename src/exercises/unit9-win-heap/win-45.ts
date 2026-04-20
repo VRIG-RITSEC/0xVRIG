@@ -7,6 +7,9 @@ export const win45: Exercise = {
   desc: 'Windows Segment Heap has protections against double-free, but older NT heap doesn\'t always catch it. This exercise simulates a double-free: free chunk A, free chunk B, free chunk A again. Now <code>malloc</code> returns A twice — write <code>win()</code> into the function pointer.',
   source: {
     c: [
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '#include <windows.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// Double Free on Windows', cls: 'comment' },
       { text: '// NT heap: less validation than Segment Heap', cls: 'comment' },
       { text: '', cls: '' },

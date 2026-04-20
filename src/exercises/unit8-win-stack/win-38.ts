@@ -7,6 +7,8 @@ export const win38: Exercise = {
   desc: 'Windows PE files use the <b>Import Address Table (IAT)</b> — like Linux\'s GOT. This program has a 20-byte buffer. Overflow it to redirect execution to <code>win()</code>. The larger buffer means more padding bytes before you hit the return address.',
   source: {
     c: [
+      { text: '#include <stdio.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// PE Import Address Table (IAT)', cls: 'comment' },
       { text: '// Like GOT on Linux — holds resolved', cls: 'comment' },
       { text: '// function addresses at runtime', cls: 'comment' },

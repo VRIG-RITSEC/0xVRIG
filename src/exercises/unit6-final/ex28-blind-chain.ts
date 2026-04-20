@@ -7,6 +7,8 @@ const ex28BlindChain: Exercise = {
   desc: 'Good luck.',
   source: {
     c: [
+      { text: '#include <stdlib.h>', cls: '' },
+      { text: '', cls: '' },
       { text: '// Good luck.', cls: 'cmt' },
       { text: 'void ???() { /* 0x08048150 */ }', cls: '' },
       { text: 'void normal() { /* ... */ }', cls: '' },
