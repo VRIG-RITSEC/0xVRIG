@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import StepControls from './inputs/StepControls';
 import TextHexInput from './inputs/TextHexInput';
@@ -15,10 +15,31 @@ import AsmStepInput from './inputs/AsmStepInput';
 import AsmQuizInput from './inputs/AsmQuizInput';
 import Toolkit from './Toolkit';
 
+const MOBILE_BREAKPOINT = '(max-width: 900px)';
+
 export default function InputPanel({ showToolkit = true }: { showToolkit?: boolean }) {
   const { currentExercise, asmEmulator, state } = useExerciseContext();
   const ex = currentExercise;
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT);
+    const syncIsMobile = (event?: MediaQueryListEvent) => {
+      setIsMobile(event?.matches ?? mediaQuery.matches);
+    };
+
+    syncIsMobile();
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncIsMobile);
+      return () => mediaQuery.removeEventListener('change', syncIsMobile);
+    }
+
+    mediaQuery.addListener(syncIsMobile);
+    return () => mediaQuery.removeListener(syncIsMobile);
+  }, []);
 
   let content: React.ReactNode;
   if (!ex) {
@@ -86,14 +107,16 @@ export default function InputPanel({ showToolkit = true }: { showToolkit?: boole
           {state.inputProgress && (
             <span className="input-panel-progress">{state.inputProgress}</span>
           )}
-          <button
-            type="button"
-            className="input-panel-action"
-            aria-expanded={!collapsed}
-            onClick={() => setCollapsed((prev) => !prev)}
-          >
-            {collapsed ? 'Expand' : 'Minimize'}
-          </button>
+          {isMobile && (
+            <button
+              type="button"
+              className="input-panel-action"
+              aria-expanded={!collapsed}
+              onClick={() => setCollapsed((prev) => !prev)}
+            >
+              {collapsed ? 'Expand' : 'Minimize'}
+            </button>
+          )}
         </div>
       </div>
       {!collapsed && (

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useReducer, useRef, useEffect } from 'react';
 import { AppState, Action } from './types';
 import { reducer, createInitialState } from './reducer';
-import { saveProgress } from './persistence';
+import { loadProgress, saveProgress } from './persistence';
 import { StackSim } from '@/engine/simulators/StackSim';
 import { HeapSim } from '@/engine/simulators/HeapSim';
 import { WinHeapSim } from '@/engine/simulators/WinHeapSim';
@@ -34,6 +34,10 @@ export function ExerciseContextProvider({ children }: { children: React.ReactNod
   const currentExercise = state.currentExerciseId
     ? getExercise(state.currentExerciseId) ?? null
     : null;
+
+  useEffect(() => {
+    dispatch({ type: 'HYDRATE_COMPLETED', completed: loadProgress() });
+  }, []);
 
   // Persist completed exercises whenever they change
   const completedRef = useRef(state.completed);
