@@ -46,8 +46,8 @@ html {
   --bg-panel-solid: #0f1a24;
   --bg-header: rgba(6, 13, 20, 0.82);
   --fg: #f4f6f8;
-  --fg-muted: rgba(244, 246, 248, 0.72);
-  --fg-subtle: rgba(244, 246, 248, 0.52);
+  --fg-muted: rgba(244, 246, 248, 0.94);
+  --fg-subtle: rgba(244, 246, 248, 0.88);
   --border-color: rgba(126, 157, 177, 0.22);
   --border-strong: rgba(126, 157, 177, 0.38);
   --accent: #f59e3b;
@@ -58,7 +58,7 @@ html {
   --panel-bg: var(--bg-panel);
   --panel-border: var(--border-color);
   --text: var(--fg);
-  --text-dim: var(--fg-muted);
+  --text-dim: var(--fg);
   --green: var(--accent);
   --blue: #8ec5ff;
   --amber: #ffc07a;
@@ -342,15 +342,37 @@ main {
 
 /* Toolkit accordion */
 .toolkit { margin-top: 0.75rem; border-top: 1px solid var(--panel-border); }
-.toolkit-section { border-bottom: 1px solid var(--panel-border); }
-.toolkit-header {
-  display: flex; align-items: center; gap: 0.35rem; width: 100%;
-  background: transparent; border: none; color: var(--text-dim); cursor: pointer;
-  font-family: var(--font-sans); font-size: 10px; padding: 0.45rem 0.5rem;
-  text-transform: uppercase; letter-spacing: 0.05em; text-align: left;
+.toolkit-tabs {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.65rem 0.5rem 0.5rem;
 }
-.toolkit-header:hover { color: var(--text); background: rgba(255,255,255,0.03); }
-.toolkit-body { padding: 0 0.5rem 0.5rem; }
+.toolkit-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.15rem;
+  padding: 0.45rem 0.75rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.toolkit-tab.active {
+  background: linear-gradient(135deg, var(--accent), #f6b865);
+  border-color: transparent;
+  color: var(--fg-accent);
+}
+.toolkit-panel {
+  padding: 0 0.5rem 0.5rem;
+}
 
 /* Input panel */
 #input-panel { grid-column: 1; grid-row: 2; }
@@ -538,7 +560,7 @@ button.link-button:focus-visible,
 
 /* Exercise description */
 #exercise-desc {
-  padding: 0.5rem 0.75rem; font-size: 12px; line-height: 1.5;
+  padding: 0.75rem 0.9rem; font-size: 14px; line-height: 1.7;
   border-bottom: 1px solid var(--panel-border); flex-shrink: 0;
   color: var(--text); background: linear-gradient(180deg, rgba(245, 158, 59, 0.08), rgba(255,255,255,0.02));
 }
@@ -671,20 +693,29 @@ button.link-button:focus-visible,
   }
 
   .mobile-directions-panel .panel-body {
-    max-height: clamp(7.5rem, 24vh, 12rem);
+    max-height: clamp(8.5rem, 27vh, 14rem);
     overflow: auto;
+  }
+
+  .mobile-directions-panel .panel-hdr {
+    color: var(--accent-strong);
   }
 
   .mobile-directions-content,
   .mobile-directions-empty {
-    font-size: 12px;
-    line-height: 1.6;
+    font-size: 0.98rem;
+    line-height: 1.75;
     color: var(--text);
   }
 
   .mobile-directions-content strong {
     color: var(--accent-strong);
     font-weight: 600;
+  }
+
+  .mobile-directions-content p,
+  .mobile-directions-content li {
+    font-size: 0.98rem;
   }
 
   .mobile-workspace {
@@ -765,6 +796,10 @@ button.link-button:focus-visible,
   .mobile-exercise-pager .link-button {
     flex: 1;
     min-width: 0;
+  }
+
+  #app.exercise-mobile-nav-bottom .mobile-sidebar-toggle {
+    display: none;
   }
 
   .sidebar.sidebar-mobile-open {

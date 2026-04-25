@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useExerciseContext } from '@/state/ExerciseContext';
 
 const MOBILE_BREAKPOINT = '(max-width: 900px)';
+const MOBILE_SIDEBAR_TOGGLE_EVENT = '0xvrig:toggle-mobile-sidebar';
 
 const IMAGINE_RIT_EXERCISES = [
   { id: 'rit-01', title: 'The Stack Frame' },
@@ -58,6 +59,15 @@ export default function ImagineRitSidebar() {
       setMobileOpen(false);
     }
   }, [isMobile, pathname]);
+
+  useEffect(() => {
+    function handleExternalToggle() {
+      setMobileOpen((prev) => !prev);
+    }
+
+    window.addEventListener(MOBILE_SIDEBAR_TOGGLE_EVENT, handleExternalToggle);
+    return () => window.removeEventListener(MOBILE_SIDEBAR_TOGGLE_EVENT, handleExternalToggle);
+  }, []);
 
   return (
     <>

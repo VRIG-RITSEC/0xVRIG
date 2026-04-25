@@ -19,6 +19,7 @@ import LogPanel from '@/components/panels/LogPanel/LogPanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const MOBILE_BREAKPOINT = '(max-width: 900px)';
+const MOBILE_SIDEBAR_TOGGLE_EVENT = '0xvrig:toggle-mobile-sidebar';
 
 function retAddrInMain(symbols: Record<string, number>): number {
   return (symbols.main || BASE_SYMBOLS.main) + 0x25;
@@ -107,6 +108,13 @@ function MobileExercisePager() {
       </button>
       <button
         type="button"
+        className="link-button secondary-accent"
+        onClick={() => window.dispatchEvent(new Event(MOBILE_SIDEBAR_TOGGLE_EVENT))}
+      >
+        Contents
+      </button>
+      <button
+        type="button"
         className="link-button primary"
         disabled={!nextExercise}
         onClick={() => nextExercise && router.push(`${basePath}/${nextExercise.id}`)}
@@ -148,16 +156,20 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
 
   useEffect(() => {
     const mainElement = document.querySelector('#app-body > main');
+    const appElement = document.getElementById('app');
     if (!mainElement) return;
 
     if (isMobile) {
       mainElement.classList.add('exercise-main-mobile-shell');
+      appElement?.classList.add('exercise-mobile-nav-bottom');
     } else {
       mainElement.classList.remove('exercise-main-mobile-shell');
+      appElement?.classList.remove('exercise-mobile-nav-bottom');
     }
 
     return () => {
       mainElement.classList.remove('exercise-main-mobile-shell');
+      appElement?.classList.remove('exercise-mobile-nav-bottom');
     };
   }, [isMobile, pathname]);
 

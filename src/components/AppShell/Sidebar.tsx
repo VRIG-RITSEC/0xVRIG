@@ -7,6 +7,7 @@ import { TRACKS, UNITS, getExercise } from '@/exercises/registry';
 
 const STORAGE_KEY = '0xvrig-sidebar-v1';
 const MOBILE_BREAKPOINT = '(max-width: 900px)';
+const MOBILE_SIDEBAR_TOGGLE_EVENT = '0xvrig:toggle-mobile-sidebar';
 
 interface SidebarState {
   collapsed: boolean;
@@ -153,6 +154,15 @@ export default function Sidebar() {
       setMobileOpen(false);
     }
   }, [isMobile, pathname]);
+
+  useEffect(() => {
+    function handleExternalToggle() {
+      setMobileOpen((prev) => !prev);
+    }
+
+    window.addEventListener(MOBILE_SIDEBAR_TOGGLE_EVENT, handleExternalToggle);
+    return () => window.removeEventListener(MOBILE_SIDEBAR_TOGGLE_EVENT, handleExternalToggle);
+  }, []);
 
   const sidebarClasses = [
     'sidebar',
