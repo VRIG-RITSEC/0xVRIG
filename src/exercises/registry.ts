@@ -21,6 +21,7 @@ import { unit17Exercises } from './unit17-advanced-ii';
 import { unit18Exercises } from './unit18-kernel';
 import { unit19Exercises } from './unit19-glibc-bypass';
 import { unit20Exercises } from './unit20-teaching-gaps';
+import { imagineRitExercises } from './imagine-rit';
 
 const ALL_EXERCISES: Exercise[] = [
   ...unitIntroCExercises,
@@ -45,6 +46,7 @@ const ALL_EXERCISES: Exercise[] = [
   ...unit18Exercises,
   ...unit19Exercises,
   ...unit20Exercises,
+  ...imagineRitExercises,
 ];
 
 const exerciseMap = new Map<string, Exercise>();

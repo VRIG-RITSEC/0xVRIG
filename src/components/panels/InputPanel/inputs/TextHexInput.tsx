@@ -8,7 +8,7 @@ import { generateExecSteps, execCurrentStep, ExecStep } from '@/engine/execution
 export default function TextHexInput() {
   const { state, dispatch, stackSim, currentExercise } = useExerciseContext();
   const [payload, setPayload] = useState('');
-  const [mode, setMode] = useState<'text' | 'hex'>(state.inputMode);
+  const [mode, setMode] = useState<'text' | 'hex'>(currentExercise?.mode === 'input-hex' ? 'hex' : state.inputMode);
   const [execSteps, setExecSteps] = useState<ExecStep[] | null>(null);
   const [execIndex, setExecIndex] = useState(0);
   const [ropState] = useState<{ ropEax?: number; ropEbx?: number; ropFlagValue?: number }>({});
@@ -151,7 +151,7 @@ export default function TextHexInput() {
   return (
     <div>
       <div style={{ marginBottom: '0.5rem' }}>
-        {!isTextMode && (
+        {isTextMode && (
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
             <label style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
               <input type="radio" name="mode" checked={mode === 'hex'} onChange={() => setMode('hex')} /> Hex
@@ -168,7 +168,7 @@ export default function TextHexInput() {
             setExecSteps(null);
             setExecIndex(0);
           }}
-          placeholder={isTextMode ? 'Type your input here...' : mode === 'hex' ? 'Enter hex bytes: 41 41 41 41 ...' : 'Type ASCII input...'}
+          placeholder={isTextMode ? (mode === 'hex' ? 'Enter hex bytes: 41 41 41 41 ...' : 'Type your input here...') : 'Enter hex bytes: 41 41 41 41 ...'}
           style={{
             width: '100%',
             minHeight: '60px',
