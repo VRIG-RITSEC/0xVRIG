@@ -1021,10 +1021,8 @@ button.link-button:focus-visible,
 
   .mobile-workspace-panel {
     display: flex;
-    flex: 0 0 auto;
+    flex: 1 1 0%;
     flex-direction: column;
-    height: var(--mobile-workspace-panel-height, auto);
-    max-height: var(--mobile-workspace-panel-height, none);
     min-height: 0;
     overflow: hidden;
   }
