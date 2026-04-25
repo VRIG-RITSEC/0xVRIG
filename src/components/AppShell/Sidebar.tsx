@@ -210,7 +210,7 @@ export default function Sidebar() {
           aria-label="Close exercise navigation"
           onClick={closeMobileSidebar}
         >
-          Close
+          Done
         </button>
 
         {(isMobile || !collapsed) && (

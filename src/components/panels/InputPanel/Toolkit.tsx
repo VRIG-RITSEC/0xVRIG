@@ -15,7 +15,9 @@ interface ToolSection {
   component: React.ReactNode;
 }
 
-export default function Toolkit({ exercise }: { exercise: Exercise }) {
+export default function Toolkit(
+  { exercise, variant = 'tabs' }: { exercise: Exercise; variant?: 'tabs' | 'stack' },
+) {
   const sections: ToolSection[] = [
     { id: 'symbols', label: 'SYMBOLS', visible: !!exercise.showSymbols, component: <SymbolTable /> },
     { id: 'calc', label: 'HEX CALC', visible: !!exercise.showCalc, component: <HexCalculator /> },
@@ -39,6 +41,19 @@ export default function Toolkit({ exercise }: { exercise: Exercise }) {
   }, [activeSection, visibleSections]);
 
   if (visibleSections.length === 0) return null;
+
+  if (variant === 'stack') {
+    return (
+      <div className="toolkit toolkit-stack">
+        {visibleSections.map((section) => (
+          <section key={section.id} className="toolkit-stack-section">
+            <div className="toolkit-stack-title">{section.label}</div>
+            <div className="toolkit-stack-body">{section.component}</div>
+          </section>
+        ))}
+      </div>
+    );
+  }
 
   const selectedSection = visibleSections.find((section) => section.id === activeSection) ?? visibleSections[0];
 

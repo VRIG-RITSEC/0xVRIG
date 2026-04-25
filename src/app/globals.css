@@ -373,6 +373,31 @@ main {
 .toolkit-panel {
   padding: 0 0.5rem 0.5rem;
 }
+.toolkit-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0;
+  border-top: 0;
+}
+.toolkit-stack-section {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.02);
+}
+.toolkit-stack-title {
+  color: var(--accent-strong);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+}
+.toolkit-stack-body > *:first-child {
+  margin-top: 0 !important;
+}
 
 /* Input panel */
 #input-panel { grid-column: 1; grid-row: 2; }
@@ -661,17 +686,23 @@ button.link-button:focus-visible,
 
   .sidebar {
     position: fixed;
-    top: 0;
+    top: auto;
     left: 0;
-    height: 100dvh;
-    width: min(82vw, 320px);
+    right: 0;
+    bottom: 0;
+    height: min(74dvh, 42rem);
+    width: 100%;
     min-width: 0;
-    max-width: 320px;
-    border-right: 1px solid var(--panel-border);
-    transform: translateX(-100%);
+    max-width: none;
+    border-right: none;
+    border-top: 1px solid var(--panel-border);
+    border-top-left-radius: 1.4rem;
+    border-top-right-radius: 1.4rem;
+    transform: translateY(calc(100% + 1rem));
     transition: transform 0.18s ease;
-    box-shadow: 0 0 32px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 -18px 50px rgba(0, 0, 0, 0.4);
     z-index: 50;
+    overflow: hidden;
   }
 
   main.exercise-main-mobile-shell {
@@ -773,6 +804,10 @@ button.link-button:focus-visible,
     min-height: 0;
   }
 
+  .mobile-misc-panel .panel-body {
+    overflow: auto;
+  }
+
   .mobile-bottom-dock {
     flex-shrink: 0;
     display: flex;
@@ -803,7 +838,7 @@ button.link-button:focus-visible,
   }
 
   .sidebar.sidebar-mobile-open {
-    transform: translateX(0);
+    transform: translateY(0);
   }
 
   .sidebar.sidebar-collapsed {
@@ -818,17 +853,89 @@ button.link-button:focus-visible,
   .mobile-sidebar-close {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     width: 100%;
-    min-height: 2.5rem;
-    padding: 0 0.85rem;
-    background: transparent;
+    min-height: 3.25rem;
+    padding: 0.85rem 1rem 0.75rem;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
     border: none;
     border-bottom: 1px solid var(--panel-border);
     color: var(--fg-muted);
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     cursor: pointer;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-sidebar-close::before {
+    content: '';
+    position: absolute;
+    top: 0.45rem;
+    left: 50%;
+    width: 3rem;
+    height: 0.28rem;
+    margin-left: -1.5rem;
+    border-radius: 999px;
+    background: rgba(244, 246, 248, 0.28);
+  }
+
+  .sidebar-content {
+    padding: 0.4rem 0 1rem;
+  }
+
+  .sidebar-track {
+    border-bottom: none;
+    padding: 0 0.65rem 0.75rem;
+  }
+
+  .sidebar-track-header {
+    min-height: 3.25rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--panel-border);
+    font-size: 0.92rem;
+  }
+
+  .sidebar-unit {
+    margin-top: 0.45rem;
+  }
+
+  .sidebar-unit-header {
+    min-height: 2.9rem;
+    padding: 0.7rem 0.9rem 0.7rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    background: rgba(255,255,255,0.02);
+  }
+
+  .sidebar-exercise {
+    min-height: 3.15rem;
+    padding: 0.75rem 0.95rem 0.75rem 1.25rem;
+    margin-top: 0.25rem;
+    border-left-width: 3px;
+    font-size: 0.92rem;
+    white-space: normal;
+    line-height: 1.45;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+
+  .sidebar-exercise-title {
+    white-space: normal;
+    line-height: 1.4;
+  }
+
+  .sidebar-track-count,
+  .sidebar-unit-count,
+  .sidebar-chevron,
+  .sidebar-exercise-check {
+    font-size: 0.78rem;
   }
 
   #app-body {

@@ -98,7 +98,7 @@ export default function ImagineRitSidebar() {
           aria-label="Close Imagine RIT navigation"
           onClick={closeMobileSidebar}
         >
-          Close
+          Done
         </button>
 
         <div className="sidebar-content">

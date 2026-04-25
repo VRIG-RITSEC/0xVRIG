@@ -15,6 +15,7 @@ import { BASE_SYMBOLS } from '@/exercises/shared/symbols';
 import SourcePanel from '@/components/panels/SourcePanel/SourcePanel';
 import VizPanel from '@/components/panels/VizPanel/VizPanel';
 import InputPanel from '@/components/panels/InputPanel/InputPanel';
+import Toolkit from '@/components/panels/InputPanel/Toolkit';
 import LogPanel from '@/components/panels/LogPanel/LogPanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
@@ -130,7 +131,7 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
   const { dispatch, stackSim, heapSim, asmEmulator, currentExercise } = useExerciseContext();
   const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
-  const [activeMobileTab, setActiveMobileTab] = useState<'source' | 'viz' | 'log'>('source');
+  const [activeMobileTab, setActiveMobileTab] = useState<'source' | 'viz' | 'log' | 'misc'>('source');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -381,9 +382,7 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
     dispatch({ type: 'LOAD_EXERCISE', exerciseId: id });
   }, [id]); // eslint-disable-line
   const mobileVizLabel =
-    currentExercise?.vizMode === 'asm' || currentExercise?.vizMode === 'asm-stack'
-      ? 'Assembly'
-      : 'Visual';
+    'Assembly';
 
   if (isMobile) {
     return (
@@ -417,7 +416,16 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
               className={`mobile-workspace-tab${activeMobileTab === 'log' ? ' active' : ''}`}
               onClick={() => setActiveMobileTab('log')}
             >
-              Log
+              Console
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMobileTab === 'misc'}
+              className={`mobile-workspace-tab${activeMobileTab === 'misc' ? ' active' : ''}`}
+              onClick={() => setActiveMobileTab('misc')}
+            >
+              Misc
             </button>
           </div>
 
@@ -429,12 +437,20 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
               </ErrorBoundary>
             )}
             {activeMobileTab === 'log' && <LogPanel />}
+            {activeMobileTab === 'misc' && currentExercise && (
+              <div className="panel mobile-misc-panel">
+                <div className="panel-hdr">misc</div>
+                <div className="panel-body">
+                  <Toolkit exercise={currentExercise} variant="stack" />
+                </div>
+              </div>
+            )}
           </div>
         </section>
 
         <div className="mobile-bottom-dock">
           <ErrorBoundary>
-            <InputPanel />
+            <InputPanel showToolkit={false} />
           </ErrorBoundary>
           <MobileExercisePager />
         </div>

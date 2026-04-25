@@ -14,7 +14,7 @@ import AsmStepInput from './inputs/AsmStepInput';
 import AsmQuizInput from './inputs/AsmQuizInput';
 import Toolkit from './Toolkit';
 
-export default function InputPanel() {
+export default function InputPanel({ showToolkit = true }: { showToolkit?: boolean }) {
   const { currentExercise, asmEmulator } = useExerciseContext();
   const ex = currentExercise;
 
@@ -82,7 +82,7 @@ export default function InputPanel() {
       <div className="panel-body">
         <div id="input-area">
           {content}
-          {ex && <Toolkit exercise={ex} />}
+          {showToolkit && ex && <Toolkit exercise={ex} />}
         </div>
       </div>
     </div>

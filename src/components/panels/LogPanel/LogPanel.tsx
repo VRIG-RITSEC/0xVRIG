@@ -15,7 +15,7 @@ export default function LogPanel() {
 
   return (
     <div className="panel" id="log-panel">
-      <div className="panel-hdr">execution log</div>
+      <div className="panel-hdr">console</div>
       <div className="panel-body" ref={scrollRef}>
         <div id="exec-log">
           {state.logMessages.map((entry, i) => (
