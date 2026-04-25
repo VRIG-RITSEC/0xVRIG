@@ -3,6 +3,7 @@ export interface AppState {
   completed: Set<string>;
   logMessages: Array<{ cls: string; msg: string }>;
   inputMode: 'text' | 'hex';
+  inputProgress: string | null;
   stepIndex: number;
   symbols: Record<string, number>;
   aslrBase: number;
@@ -21,6 +22,8 @@ export interface AppState {
   execLine: number;
   vizRenderKey: number;
   showSuccess: { title: string; msg: string } | null;
+  toast: { message: string } | null;
+  showSolutionGuide: boolean;
 }
 
 export type Action =
@@ -29,6 +32,7 @@ export type Action =
   | { type: 'LOG_BATCH'; messages: Array<{ cls: string; msg: string }> }
   | { type: 'CLEAR_LOG' }
   | { type: 'SET_INPUT_MODE'; mode: 'text' | 'hex' }
+  | { type: 'SET_INPUT_PROGRESS'; progress: string | null }
   | { type: 'SET_STEP_INDEX'; index: number }
   | { type: 'INCREMENT_STEP' }
   | { type: 'SET_RUNNING'; running: boolean }
@@ -44,4 +48,8 @@ export type Action =
   | { type: 'SET_EXEC_LINE'; line: number }
   | { type: 'SHOW_SUCCESS'; title: string; msg: string }
   | { type: 'DISMISS_SUCCESS' }
+  | { type: 'SHOW_TOAST'; message: string }
+  | { type: 'DISMISS_TOAST' }
+  | { type: 'SHOW_SOLUTION_GUIDE' }
+  | { type: 'DISMISS_SOLUTION_GUIDE' }
   | { type: 'RESET' };

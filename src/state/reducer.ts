@@ -8,6 +8,7 @@ export function createInitialState(): AppState {
     completed: loadProgress(),
     logMessages: [],
     inputMode: 'text',
+    inputProgress: null,
     stepIndex: 0,
     symbols: { ...BASE_SYMBOLS },
     aslrBase: 0,
@@ -26,6 +27,8 @@ export function createInitialState(): AppState {
     execLine: -1,
     vizRenderKey: 0,
     showSuccess: null,
+    toast: null,
+    showSolutionGuide: false,
   };
 }
 
@@ -37,6 +40,7 @@ export function reducer(state: AppState, action: Action): AppState {
         currentExerciseId: action.exerciseId,
         logMessages: [],
         stepIndex: 0,
+        inputProgress: null,
         running: false,
         execStepIndex: 0,
         execStepsTotal: 0,
@@ -52,6 +56,8 @@ export function reducer(state: AppState, action: Action): AppState {
         execLine: -1,
         vizRenderKey: state.vizRenderKey + 1,
         showSuccess: null,
+        toast: null,
+        showSolutionGuide: false,
       };
 
     case 'LOG':
@@ -71,6 +77,9 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'SET_INPUT_MODE':
       return { ...state, inputMode: action.mode };
+
+    case 'SET_INPUT_PROGRESS':
+      return { ...state, inputProgress: action.progress };
 
     case 'SET_STEP_INDEX':
       return { ...state, stepIndex: action.index };
@@ -140,6 +149,18 @@ export function reducer(state: AppState, action: Action): AppState {
 
     case 'DISMISS_SUCCESS':
       return { ...state, showSuccess: null };
+
+    case 'SHOW_TOAST':
+      return { ...state, toast: { message: action.message } };
+
+    case 'DISMISS_TOAST':
+      return { ...state, toast: null };
+
+    case 'SHOW_SOLUTION_GUIDE':
+      return { ...state, showSolutionGuide: true };
+
+    case 'DISMISS_SOLUTION_GUIDE':
+      return { ...state, showSolutionGuide: false };
 
     case 'RESET':
       return {

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { hexStrToBytes, strToBytes } from '@/engine/helpers';
 import { generateExecSteps, execCurrentStep, ExecStep } from '@/engine/execution/StepEngine';
+import WalkthroughButton from './WalkthroughButton';
 
 export default function TextHexInput() {
   const { state, dispatch, stackSim, currentExercise } = useExerciseContext();
@@ -16,18 +17,32 @@ export default function TextHexInput() {
   const ex = currentExercise;
   const sim = stackSim.current;
 
+  useEffect(() => {
+    if (!execSteps) {
+      dispatch({ type: 'SET_INPUT_PROGRESS', progress: null });
+      return;
+    }
+
+    const completed = Math.min(execIndex, execSteps.length);
+    dispatch({ type: 'SET_INPUT_PROGRESS', progress: `Step ${completed}/${execSteps.length}` });
+
+    return () => {
+      dispatch({ type: 'SET_INPUT_PROGRESS', progress: null });
+    };
+  }, [execSteps, execIndex, dispatch]);
+
   const doStep = useCallback(() => {
     if (!ex || !sim) return;
 
     // Generate steps if not started
     if (!execSteps) {
       if (!payload.trim()) {
-        dispatch({ type: 'LOG', cls: 'info', msg: 'Enter a payload first.' });
+        dispatch({ type: 'SHOW_TOAST', message: 'Enter a payload first before stepping the program.' });
         return;
       }
       const bytes = mode === 'hex' ? hexStrToBytes(payload) : strToBytes(payload);
       if (!bytes.length) {
-        dispatch({ type: 'LOG', cls: 'info', msg: 'Empty payload.' });
+        dispatch({ type: 'SHOW_TOAST', message: 'That input is empty. Enter a payload before running.' });
         return;
       }
 
@@ -96,11 +111,14 @@ export default function TextHexInput() {
 
     if (!steps) {
       if (!payload.trim()) {
-        dispatch({ type: 'LOG', cls: 'info', msg: 'Enter a payload first.' });
+        dispatch({ type: 'SHOW_TOAST', message: 'Enter a payload first before running the program.' });
         return;
       }
       const bytes = mode === 'hex' ? hexStrToBytes(payload) : strToBytes(payload);
-      if (!bytes.length) return;
+      if (!bytes.length) {
+        dispatch({ type: 'SHOW_TOAST', message: 'That input is empty. Enter a payload before running.' });
+        return;
+      }
       sim.resetForInput();
       sim.clearBlank();
       steps = generateExecSteps(ex, bytes, sim, state.symbols);
@@ -186,12 +204,8 @@ export default function TextHexInput() {
         <button className="primary" onClick={doStep} disabled={state.running}>Step</button>
         <button onClick={doRunAll} disabled={state.running}>Run</button>
         <button onClick={doReset}>Reset</button>
+        <WalkthroughButton />
       </div>
-      {execSteps && (
-        <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-          Step {Math.min(execIndex + 1, execSteps.length)}/{execSteps.length}
-        </div>
-      )}
     </div>
   );
 }

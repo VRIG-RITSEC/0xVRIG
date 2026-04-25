@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { simulateFmtRead } from '@/engine/execution/FmtEngine';
+import WalkthroughButton from './WalkthroughButton';
 
 export default function FmtReadInput() {
   const { state, dispatch, stackSim, currentExercise } = useExerciseContext();
@@ -14,7 +15,7 @@ export default function FmtReadInput() {
   const doRun = useCallback(() => {
     if (!ex || !sim) return;
     if (!payload.trim()) {
-      dispatch({ type: 'LOG', cls: 'info', msg: 'Enter a format string first.' });
+      dispatch({ type: 'SHOW_TOAST', message: 'Enter a format string before running printf().' });
       return;
     }
 
@@ -53,7 +54,10 @@ export default function FmtReadInput() {
           }}
         />
       </div>
-      <div className="controls"><button className="primary" onClick={doRun}>Run printf()</button></div>
+      <div className="controls">
+        <button className="primary" onClick={doRun}>Run printf()</button>
+        <WalkthroughButton />
+      </div>
     </div>
   );
 }

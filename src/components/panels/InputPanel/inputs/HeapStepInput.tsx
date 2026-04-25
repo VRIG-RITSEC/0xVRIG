@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { hexStrToBytes } from '@/engine/helpers';
+import WalkthroughButton from './WalkthroughButton';
 import {
   UAF_STEPS, DF_STEPS, TCP_STEPS, FBD_STEPS, USB_STEPS,
   HOF_STEPS, HOS_STEPS, HOO_STEPS, HOE_STEPS, HOL_STEPS,
@@ -34,6 +35,23 @@ export default function HeapStepInput() {
   const ex = currentExercise;
   const heap = heapSim.current;
   const phase = state.heapPhase;
+  const steps = getStepsForMode(ex?.mode ?? '');
+  const hasSteps = steps.length > 0;
+  const isInputPhase = !hasSteps || phase === 'input' || phase === 'overwrite-top' || phase === 'fake-headers' || phase === 'free-fake' || phase === 'final-write' || phase === 'null-byte' || phase === 'corrupt-top' || phase === 'bk-write';
+
+  useEffect(() => {
+    if (!hasSteps || isInputPhase) {
+      dispatch({ type: 'SET_INPUT_PROGRESS', progress: null });
+      return;
+    }
+
+    const current = Math.min(state.heapStep + 1, steps.length);
+    dispatch({ type: 'SET_INPUT_PROGRESS', progress: `Step ${current}/${steps.length}` });
+
+    return () => {
+      dispatch({ type: 'SET_INPUT_PROGRESS', progress: null });
+    };
+  }, [dispatch, hasSteps, isInputPhase, state.heapStep, steps.length]);
 
   const doStep = useCallback(() => {
     if (!ex || !heap) return;
@@ -61,13 +79,13 @@ export default function HeapStepInput() {
   const doSubmit = useCallback(() => {
     if (!ex || !heap) return;
     if (!payload.trim()) {
-      dispatch({ type: 'LOG', cls: 'info', msg: 'Enter a hex payload first.' });
+      dispatch({ type: 'SHOW_TOAST', message: 'Enter a hex payload before submitting.' });
       return;
     }
 
     const bytes = hexStrToBytes(payload);
     if (bytes.length === 0) {
-      dispatch({ type: 'LOG', cls: 'info', msg: 'Invalid hex input.' });
+      dispatch({ type: 'SHOW_TOAST', message: 'That hex payload is invalid. Enter valid hex bytes first.' });
       return;
     }
 
@@ -109,16 +127,12 @@ export default function HeapStepInput() {
     }
   }, [ex, heap, payload, state.heapNames, state.symbols, dispatch]);
 
-  const steps = getStepsForMode(ex?.mode ?? '');
-  const hasSteps = steps.length > 0;
-  const isInputPhase = !hasSteps || phase === 'input' || phase === 'overwrite-top' || phase === 'fake-headers' || phase === 'free-fake' || phase === 'final-write' || phase === 'null-byte' || phase === 'corrupt-top' || phase === 'bk-write';
-
   if (!isInputPhase) {
     return (
       <div>
-        <div className="controls"><button className="primary" onClick={doStep}>Step</button></div>
-        <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '0.25rem' }}>
-          Step {state.heapStep + 1}/{steps.length}
+        <div className="controls">
+          <button className="primary" onClick={doStep}>Step</button>
+          <WalkthroughButton />
         </div>
       </div>
     );
@@ -147,7 +161,10 @@ export default function HeapStepInput() {
           }}
         />
       </div>
-      <div className="controls"><button className="primary" onClick={doSubmit}>Submit</button></div>
+      <div className="controls">
+        <button className="primary" onClick={doSubmit}>Submit</button>
+        <WalkthroughButton />
+      </div>
     </div>
   );
 }

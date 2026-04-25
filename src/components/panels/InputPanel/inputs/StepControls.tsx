@@ -1,9 +1,11 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { hex8 } from '@/engine/helpers';
 import { StackSim } from '@/engine/simulators/StackSim';
 import { BASE_SYMBOLS } from '@/exercises/shared/symbols';
+import WalkthroughButton from './WalkthroughButton';
 
 function retAddrInMain(symbols: Record<string, number>): number {
   return (symbols.main || BASE_SYMBOLS.main) + 0x25;
@@ -11,10 +13,24 @@ function retAddrInMain(symbols: Record<string, number>): number {
 
 export default function StepControls() {
   const { state, dispatch, stackSim, heapSim, auxViz, currentExercise } = useExerciseContext();
+  const totalSteps = currentExercise?.steps?.length ?? 0;
+  const allDone = totalSteps > 0 && state.stepIndex >= totalSteps;
+
+  useEffect(() => {
+    if (!totalSteps) {
+      dispatch({ type: 'SET_INPUT_PROGRESS', progress: null });
+      return;
+    }
+
+    const current = Math.min(state.stepIndex + 1, totalSteps);
+    dispatch({ type: 'SET_INPUT_PROGRESS', progress: `Step ${current}/${totalSteps}` });
+
+    return () => {
+      dispatch({ type: 'SET_INPUT_PROGRESS', progress: null });
+    };
+  }, [totalSteps, state.stepIndex, dispatch]);
 
   if (!currentExercise || !currentExercise.steps) return null;
-
-  const allDone = state.stepIndex >= currentExercise.steps.length;
 
   function handleStep() {
     if (!currentExercise || !currentExercise.steps) return;
@@ -126,6 +142,7 @@ export default function StepControls() {
       <button onClick={handleReset}>
         Reset
       </button>
+      <WalkthroughButton />
       {allDone && (
         <span style={{ color: 'var(--green)', fontSize: '12px', alignSelf: 'center' }}>
           All steps complete {'\u2713'}

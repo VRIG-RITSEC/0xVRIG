@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { hexStrToBytes, hex8 } from '@/engine/helpers';
+import WalkthroughButton from './WalkthroughButton';
 
 export default function FinalBlindInput() {
   const { state, dispatch, heapSim, currentExercise } = useExerciseContext();
@@ -16,7 +17,7 @@ export default function FinalBlindInput() {
   const doUafWrite = useCallback(() => {
     if (!heap || !ex) return;
     if (!payload1.trim()) {
-      dispatch({ type: 'LOG', cls: 'info', msg: 'Enter a hex payload.' });
+      dispatch({ type: 'SHOW_TOAST', message: 'Enter a hex payload before submitting phase 1.' });
       return;
     }
 
@@ -49,7 +50,7 @@ export default function FinalBlindInput() {
   const doFinalWrite = useCallback(() => {
     if (!heap || !ex) return;
     if (!payload2.trim()) {
-      dispatch({ type: 'LOG', cls: 'info', msg: 'Enter the address to write.' });
+      dispatch({ type: 'SHOW_TOAST', message: 'Enter the value to write before submitting phase 2.' });
       return;
     }
 
@@ -100,7 +101,10 @@ export default function FinalBlindInput() {
             resize: 'vertical',
           }}
         />
-        <div className="controls" style={{ marginTop: '0.5rem' }}><button className="primary" onClick={doUafWrite}>Submit Phase 1</button></div>
+        <div className="controls" style={{ marginTop: '0.5rem' }}>
+          <button className="primary" onClick={doUafWrite}>Submit Phase 1</button>
+          <WalkthroughButton />
+        </div>
       </div>
     );
   }
@@ -126,7 +130,10 @@ export default function FinalBlindInput() {
           resize: 'vertical',
         }}
       />
-      <div className="controls" style={{ marginTop: '0.5rem' }}><button className="primary" onClick={doFinalWrite}>Submit Phase 2</button></div>
+      <div className="controls" style={{ marginTop: '0.5rem' }}>
+        <button className="primary" onClick={doFinalWrite}>Submit Phase 2</button>
+        <WalkthroughButton />
+      </div>
     </div>
   );
 }

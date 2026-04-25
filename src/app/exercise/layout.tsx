@@ -5,6 +5,8 @@ import { ExerciseContextProvider } from '@/state/ExerciseContext';
 import Sidebar from '@/components/AppShell/Sidebar';
 import SuccessBanner from '@/components/shared/SuccessBanner';
 import BadgePopup from '@/components/shared/BadgePopup';
+import ToastMessage from '@/components/shared/ToastMessage';
+import SolutionGuideModal from '@/components/shared/SolutionGuideModal';
 
 export default function ExerciseLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -21,6 +23,8 @@ export default function ExerciseLayout({ children }: { children: React.ReactNode
           </main>
         </div>
         <SuccessBanner />
+        <SolutionGuideModal />
+        <ToastMessage />
         <BadgePopup />
       </div>
     </ExerciseContextProvider>

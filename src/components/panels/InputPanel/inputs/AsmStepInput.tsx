@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { Emulator } from '@/engine/emulator-interface';
 import { StepResult } from '@/engine/x86/types';
+import WalkthroughButton from './WalkthroughButton';
 
 interface AsmStepInputProps {
   emulator: Emulator | null;
@@ -14,6 +15,13 @@ export default function AsmStepInput({ emulator, onStepResult }: AsmStepInputPro
   const { dispatch, currentExercise } = useExerciseContext();
   const [stepCount, setStepCount] = useState(0);
   const changedRegsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    dispatch({ type: 'SET_INPUT_PROGRESS', progress: `Steps ${stepCount}` });
+    return () => {
+      dispatch({ type: 'SET_INPUT_PROGRESS', progress: null });
+    };
+  }, [stepCount, dispatch]);
 
   const triggerWin = useCallback(() => {
     if (!currentExercise) return;
@@ -91,18 +99,18 @@ export default function AsmStepInput({ emulator, onStepResult }: AsmStepInputPro
         <button onClick={doReset}>
           Reset
         </button>
+        <WalkthroughButton />
       </div>
 
       <div style={{ fontSize: '11px', color: 'var(--dim)' }}>
-        Steps: {stepCount}
         {currentInstr && !halted && (
-          <span style={{ marginLeft: '12px', color: 'var(--fg)' }}>
+          <span style={{ color: 'var(--fg)' }}>
             Next: <span style={{ color: 'var(--warning)' }}>{currentInstr.mnemonic}</span>{' '}
             {currentInstr.operands}
           </span>
         )}
         {halted && (
-          <span style={{ marginLeft: '12px', color: 'var(--danger)' }}>
+          <span style={{ color: 'var(--danger)' }}>
             [HALTED]
           </span>
         )}

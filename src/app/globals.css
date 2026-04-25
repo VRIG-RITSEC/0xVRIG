@@ -119,15 +119,21 @@ header {
   display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--panel-border); background: var(--bg-header);
   flex-shrink: 0;
+  justify-content: center;
+  position: relative;
+  min-height: 3.25rem;
   backdrop-filter: blur(18px);
 }
 header h1 {
   font-size: 1rem;
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 800;
   white-space: nowrap;
   font-family: var(--font-display);
   letter-spacing: 0.04em;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 /* Sidebar */
@@ -220,10 +226,15 @@ header h1 {
   flex-shrink: 0; width: 1em; text-align: center; font-size: 10px; color: var(--fg-subtle);
 }
 
-#badges { display: flex; gap: 0.5rem; margin-left: auto; }
+#badges {
+  display: flex;
+  gap: 0.5rem;
+  position: absolute;
+  right: 1rem;
+}
 .badge {
   font-size: 11px; padding: 0.2rem 0.6rem; border: 1px solid var(--border-strong);
-  color: var(--accent-strong); border-radius: 999px; white-space: nowrap;
+  color: var(--accent-strong); border-radius: 0.35rem; white-space: nowrap;
   background: rgba(255,255,255,0.03);
   backdrop-filter: blur(12px);
 }
@@ -359,9 +370,9 @@ main {
   min-height: 2.15rem;
   padding: 0.45rem 0.75rem;
   background: rgba(255,255,255,0.03);
-  border: 1px solid var(--panel-border);
-  border-radius: 999px;
-  color: var(--text);
+  border: 1px solid var(--accent-secondary);
+  border-radius: 0.35rem;
+  color: var(--accent-secondary);
   cursor: pointer;
   font-family: var(--font-sans);
   font-size: 10px;
@@ -407,15 +418,53 @@ main {
 #input-panel { grid-column: 1; grid-row: 2; }
 #input-area { margin-bottom: 0.75rem; }
 #input-area label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 0.35rem; }
-.input-panel-note {
-  margin-bottom: 0.75rem;
-  padding: 0.65rem 0.75rem;
-  border: 1px solid var(--panel-border);
+.input-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.input-panel-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.input-panel-progress {
+  color: var(--accent-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.input-panel-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid rgba(126, 157, 177, 0.28);
+  border-radius: 0.35rem;
   background: rgba(255,255,255,0.03);
   color: var(--text);
-  font-size: 0.82rem;
-  line-height: 1.55;
-  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: normal;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.input-panel-action:hover,
+.input-panel-action:focus-visible {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.input-panel-shell.is-collapsed .panel-hdr {
+  border-bottom: none;
 }
 #payload-input {
   width: 100%; background: rgba(4, 12, 18, 0.78); border: 1px solid var(--border-color); color: var(--text);
@@ -429,14 +478,17 @@ main {
   display: flex; gap: 0.5rem; margin-bottom: 0.5rem;
 }
 .input-mode-toggle button {
-  background: rgba(255,255,255,0.02); border: 1px solid var(--panel-border); color: var(--text-dim);
+  background: rgba(255,255,255,0.02); border: 1px solid var(--accent-secondary); color: var(--accent-secondary);
   font-family: var(--font-sans); font-size: 11px; padding: 0.3rem 0.65rem; cursor: pointer;
-  border-radius: 999px;
+  border-radius: 0.35rem;
 }
 .input-mode-toggle button.active { border-color: var(--accent); color: var(--accent-strong); background: var(--accent-soft); }
 
 .controls {
   display: flex; gap: 0.5rem; flex-wrap: wrap;
+}
+.controls .walkthrough-button {
+  margin-left: auto;
 }
 
 a.link-button,
@@ -448,7 +500,7 @@ button.link-button,
   gap: 0.55rem;
   min-height: 2.9rem;
   padding: 0.75rem 1rem;
-  border-radius: 999px;
+  border-radius: 0.35rem;
   border: 1px solid rgba(126, 157, 177, 0.28);
   background: rgba(255, 255, 255, 0.03);
   color: var(--fg);
@@ -498,7 +550,7 @@ button.link-button:focus-visible,
 
 .link-button.secondary {
   background: rgba(9, 20, 29, 0.72);
-  border-color: rgba(109, 226, 213, 0.24);
+  border-color: rgba(126, 157, 177, 0.28);
 }
 
 .link-button.secondary:hover,
@@ -508,7 +560,7 @@ button.link-button:focus-visible,
 
 .link-button.secondary-accent {
   color: var(--accent-secondary);
-  border-color: rgba(109, 226, 213, 0.35);
+  border-color: rgba(126, 157, 177, 0.28);
 }
 
 .link-button.secondary-accent:hover,
@@ -630,7 +682,88 @@ button.link-button:focus-visible,
   font-family: var(--font-sans); font-size: 12px; padding: 0.45rem 1rem; cursor: pointer;
   border-radius: var(--radius-sm);
 }
+.app-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 240;
+  min-width: min(32rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--accent-secondary);
+  border-radius: 0.35rem;
+  background: rgba(8, 19, 28, 0.96);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  animation: toastIn 0.18s ease;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.7);
+}
+.solution-guide-modal {
+  width: min(46rem, 100%);
+  max-height: min(85dvh, 52rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 0.35rem;
+  background: var(--bg-panel-strong);
+  box-shadow: var(--shadow-lg);
+}
+.solution-guide-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.solution-guide-kicker {
+  color: var(--accent-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+.solution-guide-header h2 {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1.1;
+}
+.solution-guide-section + .solution-guide-section {
+  margin-top: 1rem;
+}
+.solution-guide-label {
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.35rem;
+}
+.solution-guide-section p,
+.solution-guide-steps {
+  color: var(--text);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.solution-guide-steps {
+  padding-left: 1.25rem;
+}
 @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(0.35rem); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 @keyframes badgeSlideIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
 
 /* CRT scanline overlay */
@@ -672,14 +805,14 @@ button.link-button:focus-visible,
     right: 0.75rem;
     height: 2rem;
     padding: 0 0.75rem;
-    border: 1px solid var(--panel-border);
+    border: 1px solid rgba(126, 157, 177, 0.28);
     background: var(--bg-panel-strong);
     color: var(--text);
     font-family: var(--font-sans);
     font-size: 11px;
     cursor: pointer;
     z-index: 60;
-    border-radius: 999px;
+    border-radius: 0.35rem;
     backdrop-filter: blur(18px);
     box-shadow: var(--shadow-md);
   }
@@ -751,7 +884,7 @@ button.link-button:focus-visible,
     justify-content: center;
     min-height: 2rem;
     padding: 0.35rem 0.75rem;
-    border-radius: 999px;
+    border-radius: 0.35rem;
     border: 1px solid rgba(126, 157, 177, 0.28);
     background: rgba(255, 255, 255, 0.03);
     color: var(--text);
@@ -767,6 +900,24 @@ button.link-button:focus-visible,
   .mobile-directions-panel .panel-body {
     max-height: clamp(8.5rem, 27vh, 14rem);
     overflow: auto;
+  }
+
+  .input-panel-header {
+    align-items: flex-start;
+  }
+
+  .input-panel-header-actions {
+    gap: 0.35rem;
+  }
+
+  .input-panel-progress {
+    width: 100%;
+    text-align: right;
+  }
+
+  .input-panel-action {
+    font-size: 0.62rem;
+    padding: 0.3rem 0.55rem;
   }
 
   .mobile-directions-panel.is-collapsed .panel-hdr {
@@ -816,10 +967,10 @@ button.link-button:focus-visible,
     justify-content: center;
     min-height: 2.6rem;
     padding: 0.65rem 0.75rem;
-    border-radius: 999px;
-    border: 1px solid rgba(126, 157, 177, 0.28);
+    border-radius: 0.35rem;
+    border: 1px solid var(--accent-secondary);
     background: rgba(255, 255, 255, 0.03);
-    color: var(--fg-muted);
+    color: var(--accent-secondary);
     font-family: var(--font-sans);
     font-size: 0.75rem;
     font-weight: 700;

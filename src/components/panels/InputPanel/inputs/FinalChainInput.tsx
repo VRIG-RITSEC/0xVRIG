@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { hexStrToBytes, hex8 } from '@/engine/helpers';
+import WalkthroughButton from './WalkthroughButton';
 
 export default function FinalChainInput() {
   const { state, dispatch, heapSim, currentExercise } = useExerciseContext();
@@ -17,7 +18,7 @@ export default function FinalChainInput() {
     if (!heap) return;
     const val = parseInt(count);
     if (isNaN(val)) {
-      dispatch({ type: 'LOG', cls: 'info', msg: 'Enter a number.' });
+      dispatch({ type: 'SHOW_TOAST', message: 'Enter a valid count before submitting.' });
       return;
     }
 
@@ -50,7 +51,7 @@ export default function FinalChainInput() {
   const doSubmit = useCallback(() => {
     if (!heap || !ex) return;
     if (!payload.trim()) {
-      dispatch({ type: 'LOG', cls: 'info', msg: 'Enter a hex payload.' });
+      dispatch({ type: 'SHOW_TOAST', message: 'Enter a hex payload before submitting.' });
       return;
     }
 
@@ -105,7 +106,10 @@ export default function FinalChainInput() {
             fontSize: '12px',
           }}
         />
-        <div className="controls" style={{ marginTop: '0.5rem' }}><button className="primary" onClick={doCount}>Submit Count</button></div>
+        <div className="controls" style={{ marginTop: '0.5rem' }}>
+          <button className="primary" onClick={doCount}>Submit Count</button>
+          <WalkthroughButton />
+        </div>
       </div>
     );
   }
@@ -133,7 +137,10 @@ export default function FinalChainInput() {
           }}
         />
       </div>
-      <div className="controls"><button className="primary" onClick={doSubmit}>Submit Payload</button></div>
+      <div className="controls">
+        <button className="primary" onClick={doSubmit}>Submit Payload</button>
+        <WalkthroughButton />
+      </div>
     </div>
   );
 }

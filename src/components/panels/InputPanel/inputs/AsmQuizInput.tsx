@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { Emulator } from '@/engine/emulator-interface';
 import { AsmQuizQuestion } from '@/exercises/types';
+import WalkthroughButton from './WalkthroughButton';
 
 interface AsmQuizInputProps {
   emulator: Emulator | null;
@@ -115,6 +116,7 @@ export default function AsmQuizInput({ emulator, questions }: AsmQuizInputProps)
         <button onClick={doStep} disabled={emulator?.state.halted ?? true}>Step</button>
         <button onClick={doRunAll} disabled={emulator?.state.halted ?? true}>Run All</button>
         <button onClick={doReset}>Reset</button>
+        <WalkthroughButton />
       </div>
 
       <div style={{ fontSize: '11px', color: 'var(--green)', fontWeight: 'bold', marginTop: '4px' }}>
