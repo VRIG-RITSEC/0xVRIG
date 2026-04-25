@@ -980,7 +980,6 @@ button.link-button:focus-visible,
 
   .mobile-workspace {
     min-height: 0;
-    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -1022,15 +1021,18 @@ button.link-button:focus-visible,
 
   .mobile-workspace-panel {
     display: flex;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     flex-direction: column;
+    height: var(--mobile-workspace-panel-height, auto);
+    max-height: var(--mobile-workspace-panel-height, none);
     min-height: 0;
     overflow: hidden;
   }
 
   .mobile-workspace-panel > .panel {
-    flex: 1 1 auto;
-    height: auto;
+    flex: 1 1 100%;
+    height: 100%;
+    max-height: 100%;
     min-height: 0;
   }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { getExercise, getAllExercises } from '@/exercises/registry';
@@ -150,6 +150,10 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
   const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
   const [activeMobileTab, setActiveMobileTab] = useState<'source' | 'viz' | 'log' | 'misc'>('source');
+  const mobileShellRef = useRef<HTMLDivElement | null>(null);
+  const mobileWorkspacePanelRef = useRef<HTMLDivElement | null>(null);
+  const mobileDirectionsRef = useRef<HTMLDivElement | null>(null);
+  const mobileBottomDockRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -204,6 +208,67 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
   useEffect(() => {
     setActiveMobileTab('source');
   }, [id]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      mobileShellRef.current?.style.removeProperty('--mobile-workspace-panel-height');
+      return;
+    }
+
+    const shellElement = mobileShellRef.current;
+    const panelElement = mobileWorkspacePanelRef.current;
+    const directionsElement = mobileDirectionsRef.current;
+    const bottomDockElement = mobileBottomDockRef.current;
+
+    if (!shellElement || !panelElement || !directionsElement || !bottomDockElement) {
+      return;
+    }
+
+    let frameId = 0;
+
+    const syncPanelHeight = () => {
+      frameId = 0;
+      const shellRect = shellElement.getBoundingClientRect();
+      const panelRect = panelElement.getBoundingClientRect();
+      const bottomDockRect = bottomDockElement.getBoundingClientRect();
+      const shellStyles = window.getComputedStyle(shellElement);
+      const shellGap = parseFloat(shellStyles.rowGap || shellStyles.gap || '0') || 0;
+      const availableHeight = Math.floor(bottomDockRect.top - panelRect.top - shellGap);
+      const maxAvailableHeight = Math.floor(shellRect.bottom - panelRect.top);
+      const nextHeight = Math.max(0, Math.min(availableHeight, maxAvailableHeight));
+      shellElement.style.setProperty('--mobile-workspace-panel-height', `${nextHeight}px`);
+    };
+
+    const queueSyncPanelHeight = () => {
+      if (frameId !== 0) return;
+      frameId = window.requestAnimationFrame(syncPanelHeight);
+    };
+
+    queueSyncPanelHeight();
+
+    const observer = new ResizeObserver(() => {
+      queueSyncPanelHeight();
+    });
+
+    observer.observe(shellElement);
+    observer.observe(directionsElement);
+    observer.observe(bottomDockElement);
+
+    window.addEventListener('resize', queueSyncPanelHeight);
+    window.visualViewport?.addEventListener('resize', queueSyncPanelHeight);
+    window.visualViewport?.addEventListener('scroll', queueSyncPanelHeight);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', queueSyncPanelHeight);
+      window.visualViewport?.removeEventListener('resize', queueSyncPanelHeight);
+      window.visualViewport?.removeEventListener('scroll', queueSyncPanelHeight);
+      if (frameId !== 0) {
+        window.cancelAnimationFrame(frameId);
+      }
+      shellElement.style.removeProperty('--mobile-workspace-panel-height');
+    };
+  }, [activeMobileTab, isMobile]);
 
   useEffect(() => {
     const mainElement = document.querySelector('#app-body > main');
@@ -447,8 +512,10 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
 
   if (isMobile) {
     return (
-      <div className="mobile-exercise-shell">
-        <ExerciseDirectionsPanel />
+      <div className="mobile-exercise-shell" ref={mobileShellRef}>
+        <div ref={mobileDirectionsRef}>
+          <ExerciseDirectionsPanel />
+        </div>
 
         <section className="mobile-workspace">
           <div className="mobile-workspace-tabs" role="tablist" aria-label="Exercise workspace">
@@ -490,7 +557,7 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
             </button>
           </div>
 
-          <div className="mobile-workspace-panel">
+          <div className="mobile-workspace-panel" ref={mobileWorkspacePanelRef}>
             {activeMobileTab === 'source' && <SourcePanel showDescription={false} />}
             {activeMobileTab === 'viz' && (
               <ErrorBoundary>
@@ -509,7 +576,7 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
           </div>
         </section>
 
-        <div className="mobile-bottom-dock">
+        <div className="mobile-bottom-dock" ref={mobileBottomDockRef}>
           <ErrorBoundary>
             <InputPanel showToolkit={false} />
           </ErrorBoundary>
