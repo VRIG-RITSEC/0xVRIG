@@ -170,25 +170,65 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const htmlElement = document.documentElement;
+
+    if (!isMobile) {
+      htmlElement.style.removeProperty('--mobile-visual-viewport-height');
+      return;
+    }
+
+    const syncViewportHeight = () => {
+      const viewportHeight = Math.round(window.visualViewport?.height ?? window.innerHeight);
+      htmlElement.style.setProperty('--mobile-visual-viewport-height', `${viewportHeight}px`);
+    };
+
+    syncViewportHeight();
+
+    const viewport = window.visualViewport;
+    viewport?.addEventListener('resize', syncViewportHeight);
+    viewport?.addEventListener('scroll', syncViewportHeight);
+    window.addEventListener('resize', syncViewportHeight);
+    window.addEventListener('orientationchange', syncViewportHeight);
+
+    return () => {
+      viewport?.removeEventListener('resize', syncViewportHeight);
+      viewport?.removeEventListener('scroll', syncViewportHeight);
+      window.removeEventListener('resize', syncViewportHeight);
+      window.removeEventListener('orientationchange', syncViewportHeight);
+      htmlElement.style.removeProperty('--mobile-visual-viewport-height');
+    };
+  }, [isMobile]);
+
+  useEffect(() => {
     setActiveMobileTab('source');
   }, [id]);
 
   useEffect(() => {
     const mainElement = document.querySelector('#app-body > main');
     const appElement = document.getElementById('app');
+    const bodyElement = document.body;
+    const htmlElement = document.documentElement;
     if (!mainElement) return;
 
     if (isMobile) {
       mainElement.classList.add('exercise-main-mobile-shell');
       appElement?.classList.add('exercise-mobile-nav-bottom');
+      bodyElement.classList.add('exercise-mobile-scroll-lock');
+      htmlElement.classList.add('exercise-mobile-scroll-lock');
     } else {
       mainElement.classList.remove('exercise-main-mobile-shell');
       appElement?.classList.remove('exercise-mobile-nav-bottom');
+      bodyElement.classList.remove('exercise-mobile-scroll-lock');
+      htmlElement.classList.remove('exercise-mobile-scroll-lock');
     }
 
     return () => {
       mainElement.classList.remove('exercise-main-mobile-shell');
       appElement?.classList.remove('exercise-mobile-nav-bottom');
+      bodyElement.classList.remove('exercise-mobile-scroll-lock');
+      htmlElement.classList.remove('exercise-mobile-scroll-lock');
     };
   }, [isMobile, pathname]);
 
@@ -401,7 +441,7 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
     if (id === 'rit-00') {
       dispatch({ type: 'EXERCISE_COMPLETED', exerciseId: id });
     }
-  }, [id]); // eslint-disable-line
+  }, [id]);
   const mobileVizLabel =
     'Assembly';
 

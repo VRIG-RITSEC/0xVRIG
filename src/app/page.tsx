@@ -16,6 +16,16 @@ export default function Dashboard() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    document.body.classList.add('intro-page');
+    document.documentElement.classList.add('intro-page');
+
+    return () => {
+      document.body.classList.remove('intro-page');
+      document.documentElement.classList.remove('intro-page');
+    };
+  }, []);
+
   if (!mounted) return null;
 
   const allExercises = getAllExercises();

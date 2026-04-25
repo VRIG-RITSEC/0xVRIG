@@ -96,6 +96,19 @@ body {
   overflow-x: hidden;
 }
 
+html.intro-page,
+body.intro-page {
+  background: #061018;
+}
+
+body.intro-page {
+  background: #061018;
+}
+
+body.intro-page::before {
+  display: none;
+}
+
 body::before {
   content: '';
   position: fixed;
@@ -241,6 +254,8 @@ header h1 {
 
 #app-body {
   display: flex; flex-direction: row; flex: 1; overflow: hidden;
+  min-height: 0;
+  min-width: 0;
 }
 
 main {
@@ -251,6 +266,8 @@ main {
   gap: var(--padding-sm);
   background: transparent;
   padding: var(--padding-sm);
+  min-height: 0;
+  min-width: 0;
 }
 
 .panel {
@@ -259,6 +276,8 @@ main {
   border-radius: 0.35rem;
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(18px);
+  min-height: 0;
+  min-width: 0;
 }
 .panel-hdr {
   padding: 0.5rem 0.9rem; font-size: 11px; color: var(--fg-subtle);
@@ -267,7 +286,7 @@ main {
   font-family: var(--font-sans);
   font-weight: 700;
 }
-.panel-body { flex: 1; overflow-y: auto; padding: 0.85rem; }
+.panel-body { flex: 1; overflow-y: auto; padding: 0.85rem; min-height: 0; min-width: 0; }
 
 /* Source panel */
 #source-panel { grid-column: 1; grid-row: 1; }
@@ -783,8 +802,14 @@ button.link-button:focus-visible,
 ::-webkit-scrollbar-thumb { background: var(--panel-border); }
 
 @media (max-width: 900px) {
+  html.exercise-mobile-scroll-lock,
+  body.exercise-mobile-scroll-lock {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   #app {
-    height: 100dvh;
+    height: var(--mobile-visual-viewport-height, 100dvh);
   }
 
   header {
@@ -856,16 +881,19 @@ button.link-button:focus-visible,
 
   main.exercise-main-mobile-shell {
     display: block;
+    height: 100%;
+    min-height: 0;
     padding: var(--padding-sm);
     overflow: hidden;
   }
 
   .mobile-exercise-shell {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
     height: 100%;
     min-height: 0;
     gap: var(--padding-sm);
+    overflow: hidden;
   }
 
   .mobile-directions-panel {
@@ -904,16 +932,20 @@ button.link-button:focus-visible,
   }
 
   .input-panel-header {
-    align-items: flex-start;
+    align-items: center;
   }
 
   .input-panel-header-actions {
     gap: 0.35rem;
+    min-width: 0;
+    flex-wrap: nowrap;
   }
 
   .input-panel-progress {
-    width: 100%;
+    min-width: 0;
+    width: auto;
     text-align: right;
+    white-space: nowrap;
   }
 
   .input-panel-action {
@@ -952,6 +984,7 @@ button.link-button:focus-visible,
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    overflow: hidden;
   }
 
   .mobile-workspace-tabs {
@@ -988,17 +1021,23 @@ button.link-button:focus-visible,
   }
 
   .mobile-workspace-panel {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
     min-height: 0;
-    flex: 1;
+    overflow: hidden;
   }
 
   .mobile-workspace-panel > .panel {
-    height: 100%;
+    flex: 1 1 auto;
+    height: auto;
     min-height: 0;
   }
 
   .mobile-workspace-panel > .panel .panel-body {
     min-height: 0;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .mobile-misc-panel .panel-body {
@@ -1007,19 +1046,26 @@ button.link-button:focus-visible,
 
   .mobile-bottom-dock {
     flex-shrink: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .mobile-bottom-dock #input-panel {
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     height: auto;
     max-height: min(42dvh, 26rem);
+    overflow: hidden;
   }
 
   .mobile-bottom-dock #input-panel .panel-body {
     overflow: auto;
+    min-height: 0;
   }
 
   .mobile-bottom-dock #input-area {
