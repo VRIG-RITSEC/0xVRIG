@@ -46,11 +46,13 @@ const ALL_EXERCISES: Exercise[] = [
   ...unit18Exercises,
   ...unit19Exercises,
   ...unit20Exercises,
-  ...imagineRitExercises,
 ];
 
 const exerciseMap = new Map<string, Exercise>();
 for (const ex of ALL_EXERCISES) {
+  exerciseMap.set(ex.id, ex);
+}
+for (const ex of imagineRitExercises) {
   exerciseMap.set(ex.id, ex);
 }
 
@@ -87,8 +89,6 @@ export const UNITS: Unit[] = [
   { id: 'unit20-teaching-gaps', name: 'Exploitation Techniques', exerciseIds: ['gap-111', 'gap-112', 'gap-113', 'gap-114', 'gap-115'] },
   // Challenges
   { id: 'unit10-challenges', name: 'CTF Lab', exerciseIds: ['ctf-47', 'ctf-48', 'ctf-49', 'ctf-50', 'ctf-51', 'ctf-52'] },
-  // Imagine RIT
-  { id: 'imagine-rit', name: 'Imagine RIT', exerciseIds: ['rit-01', 'rit-02', 'rit-03', 'rit-04', 'rit-rop'] },
 ];
 
 export const TRACKS: Track[] = [
@@ -103,7 +103,6 @@ export const TRACKS: Track[] = [
   { id: 'glibc-bypass', name: 'glibc Bypasses', unitIds: ['unit19-glibc-bypass'] },
   { id: 'techniques', name: 'Exploitation Techniques', unitIds: ['unit20-teaching-gaps'] },
   { id: 'challenges', name: 'Challenges', unitIds: ['unit10-challenges'] },
-  { id: 'imagine-rit', name: 'Imagine RIT', unitIds: ['imagine-rit'] },
 ];
 
 export const BADGES: Badge[] = [
