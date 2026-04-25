@@ -26,7 +26,7 @@ export default function SuccessBanner() {
           <div style={{ color: 'var(--text-dim)' }}>{currentExercise.realWorld}</div>
         </div>
       )}
-      <button onClick={() => dispatch({ type: 'DISMISS_SUCCESS' })}>
+      <button className="link-button primary" onClick={() => dispatch({ type: 'DISMISS_SUCCESS' })}>
         Continue
       </button>
     </div>

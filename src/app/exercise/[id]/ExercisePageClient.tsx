@@ -1,8 +1,10 @@
 'use client';
 
-import { use, useEffect } from 'react';
+import { use, useEffect, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { useExerciseContext } from '@/state/ExerciseContext';
-import { getExercise } from '@/exercises/registry';
+import { getExercise, getAllExercises } from '@/exercises/registry';
+import { imagineRitExercises } from '@/exercises/imagine-rit';
 import { StackSim } from '@/engine/simulators/StackSim';
 import { HeapSim } from '@/engine/simulators/HeapSim';
 import { WinHeapSim } from '@/engine/simulators/WinHeapSim';
@@ -15,6 +17,8 @@ import VizPanel from '@/components/panels/VizPanel/VizPanel';
 import InputPanel from '@/components/panels/InputPanel/InputPanel';
 import LogPanel from '@/components/panels/LogPanel/LogPanel';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+const MOBILE_BREAKPOINT = '(max-width: 900px)';
 
 function retAddrInMain(symbols: Record<string, number>): number {
   return (symbols.main || BASE_SYMBOLS.main) + 0x25;
@@ -56,9 +60,106 @@ function computeSymbols(exercise: ReturnType<typeof getExercise>): Record<string
   return symbols;
 }
 
+function ExerciseDirectionsPanel() {
+  const { currentExercise } = useExerciseContext();
+
+  return (
+    <div className="panel mobile-directions-panel">
+      <div className="panel-hdr">directions</div>
+      <div className="panel-body">
+        {currentExercise ? (
+          <div
+            className="mobile-directions-content"
+            dangerouslySetInnerHTML={{ __html: currentExercise.desc }}
+          />
+        ) : (
+          <div className="mobile-directions-empty">Select an exercise to begin.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MobileExercisePager() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { state } = useExerciseContext();
+  const currentId = state.currentExerciseId;
+  const isImagineRit = pathname?.startsWith('/imagine-rit/');
+  const orderedExercises = isImagineRit ? imagineRitExercises : getAllExercises();
+  const currentIndex = orderedExercises.findIndex((exercise) => exercise.id === currentId);
+  const prevExercise = currentIndex > 0 ? orderedExercises[currentIndex - 1] : null;
+  const nextExercise =
+    currentIndex >= 0 && currentIndex < orderedExercises.length - 1
+      ? orderedExercises[currentIndex + 1]
+      : null;
+  const basePath = isImagineRit ? '/imagine-rit' : '/exercise';
+
+  return (
+    <div className="mobile-exercise-pager">
+      <button
+        type="button"
+        className="link-button secondary"
+        disabled={!prevExercise}
+        onClick={() => prevExercise && router.push(`${basePath}/${prevExercise.id}`)}
+      >
+        ← Previous
+      </button>
+      <button
+        type="button"
+        className="link-button primary"
+        disabled={!nextExercise}
+        onClick={() => nextExercise && router.push(`${basePath}/${nextExercise.id}`)}
+      >
+        Next →
+      </button>
+    </div>
+  );
+}
+
 export default function ExercisePageClient({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { dispatch, stackSim, heapSim, asmEmulator } = useExerciseContext();
+  const { dispatch, stackSim, heapSim, asmEmulator, currentExercise } = useExerciseContext();
+  const pathname = usePathname();
+  const [isMobile, setIsMobile] = useState(false);
+  const [activeMobileTab, setActiveMobileTab] = useState<'source' | 'viz' | 'log'>('source');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT);
+    const syncIsMobile = (event?: MediaQueryListEvent) => {
+      setIsMobile(event?.matches ?? mediaQuery.matches);
+    };
+
+    syncIsMobile();
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncIsMobile);
+      return () => mediaQuery.removeEventListener('change', syncIsMobile);
+    }
+
+    mediaQuery.addListener(syncIsMobile);
+    return () => mediaQuery.removeListener(syncIsMobile);
+  }, []);
+
+  useEffect(() => {
+    setActiveMobileTab('source');
+  }, [id]);
+
+  useEffect(() => {
+    const mainElement = document.querySelector('#app-body > main');
+    if (!mainElement) return;
+
+    if (isMobile) {
+      mainElement.classList.add('exercise-main-mobile-shell');
+    } else {
+      mainElement.classList.remove('exercise-main-mobile-shell');
+    }
+
+    return () => {
+      mainElement.classList.remove('exercise-main-mobile-shell');
+    };
+  }, [isMobile, pathname]);
 
   useEffect(() => {
     const exercise = getExercise(id);
@@ -267,6 +368,67 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
 
     dispatch({ type: 'LOAD_EXERCISE', exerciseId: id });
   }, [id]); // eslint-disable-line
+  const mobileVizLabel =
+    currentExercise?.vizMode === 'asm' || currentExercise?.vizMode === 'asm-stack'
+      ? 'Assembly'
+      : 'Visual';
+
+  if (isMobile) {
+    return (
+      <div className="mobile-exercise-shell">
+        <ExerciseDirectionsPanel />
+
+        <section className="mobile-workspace">
+          <div className="mobile-workspace-tabs" role="tablist" aria-label="Exercise workspace">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMobileTab === 'source'}
+              className={`mobile-workspace-tab${activeMobileTab === 'source' ? ' active' : ''}`}
+              onClick={() => setActiveMobileTab('source')}
+            >
+              Code
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMobileTab === 'viz'}
+              className={`mobile-workspace-tab${activeMobileTab === 'viz' ? ' active' : ''}`}
+              onClick={() => setActiveMobileTab('viz')}
+            >
+              {mobileVizLabel}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeMobileTab === 'log'}
+              className={`mobile-workspace-tab${activeMobileTab === 'log' ? ' active' : ''}`}
+              onClick={() => setActiveMobileTab('log')}
+            >
+              Log
+            </button>
+          </div>
+
+          <div className="mobile-workspace-panel">
+            {activeMobileTab === 'source' && <SourcePanel showDescription={false} />}
+            {activeMobileTab === 'viz' && (
+              <ErrorBoundary>
+                <VizPanel />
+              </ErrorBoundary>
+            )}
+            {activeMobileTab === 'log' && <LogPanel />}
+          </div>
+        </section>
+
+        <div className="mobile-bottom-dock">
+          <ErrorBoundary>
+            <InputPanel />
+          </ErrorBoundary>
+          <MobileExercisePager />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

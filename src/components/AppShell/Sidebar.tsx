@@ -6,6 +6,7 @@ import { useExerciseContext } from '@/state/ExerciseContext';
 import { TRACKS, UNITS, getExercise } from '@/exercises/registry';
 
 const STORAGE_KEY = '0xvrig-sidebar-v1';
+const MOBILE_BREAKPOINT = '(max-width: 900px)';
 
 interface SidebarState {
   collapsed: boolean;
@@ -36,6 +37,8 @@ export default function Sidebar() {
   const { state } = useExerciseContext();
 
   const [sidebarState, setSidebarState] = useState<SidebarState>(() => loadSidebarState());
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Persist sidebar state on change
   useEffect(() => {
@@ -58,6 +61,36 @@ export default function Sidebar() {
       ...prev,
       openUnits: { ...prev.openUnits, [unitId]: !prev.openUnits[unitId] },
     }));
+  }, []);
+
+  const toggleMobileSidebar = useCallback(() => {
+    setMobileOpen((prev) => !prev);
+  }, []);
+
+  const closeMobileSidebar = useCallback(() => {
+    setMobileOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT);
+    const syncIsMobile = (event?: MediaQueryListEvent) => {
+      const matches = event?.matches ?? mediaQuery.matches;
+      setIsMobile(matches);
+      if (!matches) {
+        setMobileOpen(false);
+      }
+    };
+
+    syncIsMobile();
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', syncIsMobile);
+      return () => mediaQuery.removeEventListener('change', syncIsMobile);
+    }
+
+    mediaQuery.addListener(syncIsMobile);
+    return () => mediaQuery.removeListener(syncIsMobile);
   }, []);
 
   // Keyboard shortcuts
@@ -83,6 +116,7 @@ export default function Sidebar() {
   }, [toggleCollapse]);
 
   const { collapsed } = sidebarState;
+  const isDesktopCollapsed = collapsed && !isMobile;
 
   // Determine which exercise is active from the URL path
   const exercisePrefix = '/exercise/';
@@ -114,94 +148,143 @@ export default function Sidebar() {
     }
   }, [activeExerciseId]);
 
+  useEffect(() => {
+    if (isMobile) {
+      setMobileOpen(false);
+    }
+  }, [isMobile, pathname]);
+
+  const sidebarClasses = [
+    'sidebar',
+    isDesktopCollapsed ? 'sidebar-collapsed' : '',
+    mobileOpen ? 'sidebar-mobile-open' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <aside className={`sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}>
+    <>
       <button
-        className="sidebar-toggle"
-        onClick={toggleCollapse}
-        title={collapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+        className={`mobile-sidebar-toggle${mobileOpen ? ' active' : ''}`}
+        type="button"
+        aria-controls="exercise-sidebar"
+        aria-expanded={mobileOpen}
+        aria-label={mobileOpen ? 'Close exercise navigation' : 'Open exercise navigation'}
+        onClick={toggleMobileSidebar}
       >
-        {collapsed ? '\u25B6' : '\u25C0'}
+        {mobileOpen ? 'Close' : 'Menu'}
       </button>
 
-      {!collapsed && (
-        <div className="sidebar-content">
-          {TRACKS.map((track) => {
-            const trackUnits = track.unitIds
-              .map((uid) => UNITS.find((u) => u.id === uid))
-              .filter(Boolean) as typeof UNITS;
-            const totalExercises = trackUnits.reduce((sum, u) => sum + u.exerciseIds.length, 0);
-            const completedExercises = trackUnits.reduce(
-              (sum, u) => sum + u.exerciseIds.filter((id) => state.completed.has(id)).length,
-              0,
-            );
-            const isTrackOpen = !!sidebarState.openTracks[track.id];
-
-            return (
-              <div key={track.id} className="sidebar-track">
-                <button
-                  className="sidebar-track-header"
-                  onClick={() => toggleTrack(track.id)}
-                >
-                  <span className="sidebar-chevron">{isTrackOpen ? '\u25BE' : '\u25B8'}</span>
-                  <span className="sidebar-track-name">{track.name}</span>
-                  <span className="sidebar-track-count">
-                    {completedExercises}/{totalExercises}
-                  </span>
-                </button>
-
-                {isTrackOpen &&
-                  trackUnits.map((unit) => {
-                    const isUnitOpen = !!sidebarState.openUnits[unit.id];
-                    const unitCompleted = unit.exerciseIds.filter((id) =>
-                      state.completed.has(id),
-                    ).length;
-
-                    return (
-                      <div key={unit.id} className="sidebar-unit">
-                        <button
-                          className="sidebar-unit-header"
-                          onClick={() => toggleUnit(unit.id)}
-                        >
-                          <span className="sidebar-chevron">
-                            {isUnitOpen ? '\u25BE' : '\u25B8'}
-                          </span>
-                          <span className="sidebar-unit-name">{unit.name}</span>
-                          <span className="sidebar-unit-count">
-                            {unitCompleted}/{unit.exerciseIds.length}
-                          </span>
-                        </button>
-
-                        {isUnitOpen &&
-                          unit.exerciseIds.map((exId) => {
-                            const ex = getExercise(exId);
-                            if (!ex) return null;
-                            const isActive = activeExerciseId === exId;
-                            const isCompleted = state.completed.has(exId);
-                            const displayTitle = ex.title.replace(/^\d+:\s*/, '');
-
-                            return (
-                              <button
-                                key={exId}
-                                className={`sidebar-exercise${isActive ? ' active' : ''}${isCompleted ? ' completed' : ''}`}
-                                onClick={() => router.push(`/exercise/${exId}`)}
-                                title={ex.title}
-                              >
-                                <span className="sidebar-exercise-title">{displayTitle}</span>
-                                {isCompleted && (
-                                  <span className="sidebar-exercise-check">{'\u2713'}</span>
-                                )}
-                              </button>
-                            );
-                          })}
-                      </div>
-                    );
-                  })}
-              </div>
-            );
-          })}
-        </div>
+      {mobileOpen && (
+        <button
+          className="sidebar-backdrop"
+          type="button"
+          aria-label="Close exercise navigation"
+          onClick={closeMobileSidebar}
+        />
       )}
-    </aside>
+
+      <aside className={sidebarClasses} id="exercise-sidebar">
+        <button
+          className="sidebar-toggle"
+          type="button"
+          onClick={toggleCollapse}
+          title={collapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+        >
+          {collapsed ? '\u25B6' : '\u25C0'}
+        </button>
+
+        <button
+          className="mobile-sidebar-close"
+          type="button"
+          aria-label="Close exercise navigation"
+          onClick={closeMobileSidebar}
+        >
+          Close
+        </button>
+
+        {(isMobile || !collapsed) && (
+          <div className="sidebar-content">
+            {TRACKS.map((track) => {
+              const trackUnits = track.unitIds
+                .map((uid) => UNITS.find((u) => u.id === uid))
+                .filter(Boolean) as typeof UNITS;
+              const totalExercises = trackUnits.reduce((sum, u) => sum + u.exerciseIds.length, 0);
+              const completedExercises = trackUnits.reduce(
+                (sum, u) => sum + u.exerciseIds.filter((id) => state.completed.has(id)).length,
+                0,
+              );
+              const isTrackOpen = !!sidebarState.openTracks[track.id];
+
+              return (
+                <div key={track.id} className="sidebar-track">
+                  <button
+                    className="sidebar-track-header"
+                    type="button"
+                    onClick={() => toggleTrack(track.id)}
+                  >
+                    <span className="sidebar-chevron">{isTrackOpen ? '\u25BE' : '\u25B8'}</span>
+                    <span className="sidebar-track-name">{track.name}</span>
+                    <span className="sidebar-track-count">
+                      {completedExercises}/{totalExercises}
+                    </span>
+                  </button>
+
+                  {isTrackOpen &&
+                    trackUnits.map((unit) => {
+                      const isUnitOpen = !!sidebarState.openUnits[unit.id];
+                      const unitCompleted = unit.exerciseIds.filter((id) =>
+                        state.completed.has(id),
+                      ).length;
+
+                      return (
+                        <div key={unit.id} className="sidebar-unit">
+                          <button
+                            className="sidebar-unit-header"
+                            type="button"
+                            onClick={() => toggleUnit(unit.id)}
+                          >
+                            <span className="sidebar-chevron">
+                              {isUnitOpen ? '\u25BE' : '\u25B8'}
+                            </span>
+                            <span className="sidebar-unit-name">{unit.name}</span>
+                            <span className="sidebar-unit-count">
+                              {unitCompleted}/{unit.exerciseIds.length}
+                            </span>
+                          </button>
+
+                          {isUnitOpen &&
+                            unit.exerciseIds.map((exId) => {
+                              const ex = getExercise(exId);
+                              if (!ex) return null;
+                              const isActive = activeExerciseId === exId;
+                              const isCompleted = state.completed.has(exId);
+                              const displayTitle = ex.title.replace(/^\d+:\s*/, '');
+
+                              return (
+                                <button
+                                  key={exId}
+                                  className={`sidebar-exercise${isActive ? ' active' : ''}${isCompleted ? ' completed' : ''}`}
+                                  type="button"
+                                  onClick={() => router.push(`/exercise/${exId}`)}
+                                  title={ex.title}
+                                >
+                                  <span className="sidebar-exercise-title">{displayTitle}</span>
+                                  {isCompleted && (
+                                    <span className="sidebar-exercise-check">{'\u2713'}</span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                        </div>
+                      );
+                    })}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </aside>
+    </>
   );
 }

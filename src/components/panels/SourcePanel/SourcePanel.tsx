@@ -77,14 +77,14 @@ function highlightAsm(text: string): string {
   });
 }
 
-export default function SourcePanel() {
+export default function SourcePanel({ showDescription = true }: { showDescription?: boolean }) {
   const { currentExercise, state } = useExerciseContext();
 
   if (!currentExercise) {
     return (
       <div className="panel" id="source-panel">
         <div className="panel-hdr">source.c</div>
-        <div id="exercise-desc">Select an exercise to begin.</div>
+        {showDescription && <div id="exercise-desc">Select an exercise to begin.</div>}
         <div className="panel-body">
           <div id="source-code"></div>
         </div>
@@ -100,10 +100,12 @@ export default function SourcePanel() {
   return (
     <div className="panel" id="source-panel">
       <div className="panel-hdr">{fileName}</div>
-      <div
-        id="exercise-desc"
-        dangerouslySetInnerHTML={{ __html: currentExercise.desc }}
-      />
+      {showDescription && (
+        <div
+          id="exercise-desc"
+          dangerouslySetInnerHTML={{ __html: currentExercise.desc }}
+        />
+      )}
       <div className="panel-body">
         <div id="source-code">
           {lines.map((line, i) => {

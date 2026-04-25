@@ -113,16 +113,8 @@ export default function Dashboard() {
       {continueExercise && (
         <div style={{ marginBottom: '2rem' }}>
           <button
+            className="link-button primary"
             onClick={() => router.push(`/exercise/${continueExercise!.id}`)}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--green)',
-              color: 'var(--green)',
-              fontFamily: 'var(--font)',
-              fontSize: '13px',
-              padding: '0.5rem 1.5rem',
-              cursor: 'pointer',
-            }}
           >
             Continue: {continueExercise.title} &rarr;
           </button>
@@ -169,16 +161,8 @@ export default function Dashboard() {
       {completedCount === 0 && (
         <div style={{ marginTop: '1rem' }}>
           <button
+            className="link-button secondary"
             onClick={() => router.push('/exercise/asm-01')}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--panel-border)',
-              color: 'var(--text)',
-              fontFamily: 'var(--font)',
-              fontSize: '12px',
-              padding: '0.4rem 1rem',
-              cursor: 'pointer',
-            }}
           >
             Start from scratch
           </button>
@@ -218,19 +202,11 @@ export default function Dashboard() {
           }}
         />
         <button
+          className="link-button secondary-accent"
           onClick={() => {
             const empty = new Set<string>();
             saveProgress(empty);
             setCompleted(empty);
-          }}
-          style={{
-            background: 'transparent',
-            border: '1px solid var(--panel-border)',
-            color: 'var(--text-dim)',
-            fontFamily: 'var(--font)',
-            fontSize: '10px',
-            padding: '0.25rem 0.5rem',
-            cursor: 'pointer',
           }}
         >
           Reset Progress
