@@ -170,6 +170,38 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const htmlElement = document.documentElement;
+
+    if (!isMobile) {
+      htmlElement.style.removeProperty('--mobile-visual-viewport-height');
+      return;
+    }
+
+    const syncViewportHeight = () => {
+      const viewportHeight = Math.round(window.visualViewport?.height ?? window.innerHeight);
+      htmlElement.style.setProperty('--mobile-visual-viewport-height', `${viewportHeight}px`);
+    };
+
+    syncViewportHeight();
+
+    const viewport = window.visualViewport;
+    viewport?.addEventListener('resize', syncViewportHeight);
+    viewport?.addEventListener('scroll', syncViewportHeight);
+    window.addEventListener('resize', syncViewportHeight);
+    window.addEventListener('orientationchange', syncViewportHeight);
+
+    return () => {
+      viewport?.removeEventListener('resize', syncViewportHeight);
+      viewport?.removeEventListener('scroll', syncViewportHeight);
+      window.removeEventListener('resize', syncViewportHeight);
+      window.removeEventListener('orientationchange', syncViewportHeight);
+      htmlElement.style.removeProperty('--mobile-visual-viewport-height');
+    };
+  }, [isMobile]);
+
+  useEffect(() => {
     setActiveMobileTab('source');
   }, [id]);
 
