@@ -96,6 +96,19 @@ body {
   overflow-x: hidden;
 }
 
+html.intro-page,
+body.intro-page {
+  background: #061018;
+}
+
+body.intro-page {
+  background: #061018;
+}
+
+body.intro-page::before {
+  display: none;
+}
+
 body::before {
   content: '';
   position: fixed;
@@ -783,6 +796,12 @@ button.link-button:focus-visible,
 ::-webkit-scrollbar-thumb { background: var(--panel-border); }
 
 @media (max-width: 900px) {
+  html.exercise-mobile-scroll-lock,
+  body.exercise-mobile-scroll-lock {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   #app {
     height: 100dvh;
   }
@@ -856,6 +875,7 @@ button.link-button:focus-visible,
 
   main.exercise-main-mobile-shell {
     display: block;
+    min-height: 0;
     padding: var(--padding-sm);
     overflow: hidden;
   }
@@ -866,6 +886,7 @@ button.link-button:focus-visible,
     height: 100%;
     min-height: 0;
     gap: var(--padding-sm);
+    overflow: hidden;
   }
 
   .mobile-directions-panel {
@@ -904,16 +925,20 @@ button.link-button:focus-visible,
   }
 
   .input-panel-header {
-    align-items: flex-start;
+    align-items: center;
   }
 
   .input-panel-header-actions {
     gap: 0.35rem;
+    min-width: 0;
+    flex-wrap: nowrap;
   }
 
   .input-panel-progress {
-    width: 100%;
+    min-width: 0;
+    width: auto;
     text-align: right;
+    white-space: nowrap;
   }
 
   .input-panel-action {
@@ -990,6 +1015,7 @@ button.link-button:focus-visible,
   .mobile-workspace-panel {
     min-height: 0;
     flex: 1;
+    overflow: hidden;
   }
 
   .mobile-workspace-panel > .panel {
@@ -1007,19 +1033,25 @@ button.link-button:focus-visible,
 
   .mobile-bottom-dock {
     flex-shrink: 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    overflow: hidden;
   }
 
   .mobile-bottom-dock #input-panel {
+    display: flex;
+    flex-direction: column;
     min-height: 0;
     height: auto;
     max-height: min(42dvh, 26rem);
+    overflow: hidden;
   }
 
   .mobile-bottom-dock #input-panel .panel-body {
     overflow: auto;
+    min-height: 0;
   }
 
   .mobile-bottom-dock #input-area {

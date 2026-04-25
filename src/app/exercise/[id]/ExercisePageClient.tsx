@@ -176,19 +176,27 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
   useEffect(() => {
     const mainElement = document.querySelector('#app-body > main');
     const appElement = document.getElementById('app');
+    const bodyElement = document.body;
+    const htmlElement = document.documentElement;
     if (!mainElement) return;
 
     if (isMobile) {
       mainElement.classList.add('exercise-main-mobile-shell');
       appElement?.classList.add('exercise-mobile-nav-bottom');
+      bodyElement.classList.add('exercise-mobile-scroll-lock');
+      htmlElement.classList.add('exercise-mobile-scroll-lock');
     } else {
       mainElement.classList.remove('exercise-main-mobile-shell');
       appElement?.classList.remove('exercise-mobile-nav-bottom');
+      bodyElement.classList.remove('exercise-mobile-scroll-lock');
+      htmlElement.classList.remove('exercise-mobile-scroll-lock');
     }
 
     return () => {
       mainElement.classList.remove('exercise-main-mobile-shell');
       appElement?.classList.remove('exercise-mobile-nav-bottom');
+      bodyElement.classList.remove('exercise-mobile-scroll-lock');
+      htmlElement.classList.remove('exercise-mobile-scroll-lock');
     };
   }, [isMobile, pathname]);
 
@@ -401,7 +409,7 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
     if (id === 'rit-00') {
       dispatch({ type: 'EXERCISE_COMPLETED', exerciseId: id });
     }
-  }, [id]); // eslint-disable-line
+  }, [id]);
   const mobileVizLabel =
     'Assembly';
 
