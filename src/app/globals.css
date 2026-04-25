@@ -880,9 +880,11 @@ button.link-button:focus-visible,
   }
 
   main.exercise-main-mobile-shell {
-    display: block;
-    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
     min-height: 0;
+    min-width: 0;
     padding: var(--padding-sm);
     overflow: hidden;
   }
@@ -890,7 +892,7 @@ button.link-button:focus-visible,
   .mobile-exercise-shell {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
-    height: 100%;
+    flex: 1;
     min-height: 0;
     gap: var(--padding-sm);
     overflow: hidden;
