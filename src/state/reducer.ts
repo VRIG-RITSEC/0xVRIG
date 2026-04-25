@@ -1,11 +1,10 @@
 import { AppState, Action } from './types';
 import { BASE_SYMBOLS } from '@/exercises/shared/symbols';
-import { loadProgress } from './persistence';
 
 export function createInitialState(): AppState {
   return {
     currentExerciseId: null,
-    completed: loadProgress(),
+    completed: new Set(),
     logMessages: [],
     inputMode: 'text',
     inputProgress: null,
@@ -34,6 +33,9 @@ export function createInitialState(): AppState {
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
+    case 'HYDRATE_COMPLETED':
+      return { ...state, completed: new Set(action.completed) };
+
     case 'LOAD_EXERCISE':
       return {
         ...state,

@@ -27,6 +27,7 @@ export interface AppState {
 }
 
 export type Action =
+  | { type: 'HYDRATE_COMPLETED'; completed: Set<string> }
   | { type: 'LOAD_EXERCISE'; exerciseId: string }
   | { type: 'LOG'; cls: string; msg: string }
   | { type: 'LOG_BATCH'; messages: Array<{ cls: string; msg: string }> }
