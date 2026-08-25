@@ -37,7 +37,7 @@ const ex03Hijack: Exercise = {
   },
   winTitle: 'FLAG{you_own_the_eip}',
   winMsg: 'You made the program run a function it was never supposed to call! In a real attack, this is how hackers take control of a computer — they overwrite the go-back address to run whatever they want.',
-  realWorld: 'CVE-2020-0796 (SMBGhost): A Windows SMBv3 integer overflow was exploited with a stack buffer overflow to achieve remote kernel code execution.',
+  realWorld: 'CVE-2003-0161 (Sendmail prescan): A stack buffer overflow in Sendmail\'s address parsing allowed remote attackers to execute arbitrary code by sending a specially crafted email address.',
 };
 
 export default ex03Hijack;

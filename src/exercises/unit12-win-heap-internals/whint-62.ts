@@ -38,7 +38,7 @@ const exercise: Exercise = {
     },
     {
       action: 'malloc', size: 16, name: 'A', srcLine: 5,
-      log: ['action', 'Allocating chunk A. The allocator builds a raw _HEAP_ENTRY: Size=3 (in 8-byte units, so 3*8=24 total), Flags=BUSY, PreviousSize, SmallTagIndex (a checksum of the other fields). Then it XORs the entire 8-byte header with _HEAP.Encoding before writing to memory.'],
+      log: ['action', 'Allocating chunk A. The allocator builds a raw _HEAP_ENTRY: Size=3 (in 8-byte units, so 3*8=24 total), Flags=BUSY, PreviousSize, SmallTagIndex (a checksum of Size and Flags). Then it XORs the entire 8-byte header with _HEAP.Encoding before writing to memory.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('A', 'header'); heap.annotateField?.('A', 'size', 'raw XOR Encoding'); },
     },
     {
@@ -48,7 +48,7 @@ const exercise: Exercise = {
     },
     {
       action: 'init', srcLine: 12,
-      log: ['warn', 'When HeapFree is called, the allocator decodes: raw = encoded XOR _HEAP.Encoding. It then validates SmallTagIndex (a checksum of Size, Flags, and PreviousSize). If the checksum fails, RtlReportHeapFailure() is called, terminating the process. This catches naive header overwrites.'],
+      log: ['warn', 'When HeapFree is called, the allocator decodes: raw = encoded XOR _HEAP.Encoding. It then validates SmallTagIndex (a checksum of Size and Flags). If the checksum fails, RtlReportHeapFailure() is called, terminating the process. This catches naive header overwrites.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightField?.('A', 'size'); heap.annotateField?.('A', 'size', 'decode + checksum validate'); },
     },
     {
@@ -58,7 +58,7 @@ const exercise: Exercise = {
     },
     {
       action: 'done',
-      log: ['success', 'Heap metadata encoding: each _HEAP_ENTRY is XORed with a per-heap random cookie. SmallTagIndex acts as a checksum over Size + Flags + PreviousSize. Corruption is detected on HeapFree/HeapReAlloc. To bypass: leak the encoding key, or target user data (function pointers) instead of metadata.'],
+      log: ['success', 'Heap metadata encoding: each _HEAP_ENTRY is XORed with a per-heap random cookie. SmallTagIndex acts as a checksum over Size + Flags. Corruption is detected on HeapFree/HeapReAlloc. To bypass: leak the encoding key, or target user data (function pointers) instead of metadata.'],
     },
   ],
   check() { return false; },

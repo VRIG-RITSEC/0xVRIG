@@ -91,10 +91,13 @@ export function simulateFmtRead(
             result.fmtLeakedSecret = true;
           }
           stackIdx++;
-        } else if (action === 'c') {
-          const padding = ' '.repeat(width);
+        } else if (action === 'c' && stackIdx < stackValues.length) {
+          const sv = stackValues[stackIdx];
+          const ch = String.fromCharCode(sv.value & 0x7f);
+          const padding = width > 1 ? ' '.repeat(width - 1) + ch : ch;
           output += padding;
-          result.logs.push({ cls: 'action', msg: '%' + width + 'c \u2192 output ' + width + ' characters of padding' });
+          result.logs.push({ cls: 'action', msg: '%' + width + 'c \u2192 read slot ' + (stackIdx + 1) + ', output character padded to ' + width + ' chars <span class="log-label">(' + sv.label + ')</span>' });
+          stackIdx++;
         }
         i += widthMatch[0].length;
         continue;
@@ -194,7 +197,7 @@ export function simulateFmtWrite(
       if ((action === 'x' || action === 'p') && slotNum <= stackSlots.length) {
         const sv = stackSlots[slotNum - 1];
         const hexVal = (sv.value >>> 0).toString(16).padStart(8, '0');
-        printedChars += hexVal.length;
+        printedChars += action === 'p' ? hexVal.length + 2 : hexVal.length;
         result.logs.push({ cls: 'action', msg: '%' + slotNum + '$' + action + ' \u2192 read slot ' + slotNum + ': <span class="log-addr">0x' + hexVal + '</span> <span class="log-label">(' + sv.label + ')</span>' });
       } else if ((action === 'n' || action === 'hn' || action === 'hhn') && slotNum <= stackSlots.length) {
         const sv = stackSlots[slotNum - 1];
@@ -235,9 +238,10 @@ export function simulateFmtWrite(
     if (widthMatch) {
       const width = parseInt(widthMatch[1]);
       const action = widthMatch[2];
-      if (action === 'c') {
+      if (action === 'c' && stackIdx < stackSlots.length) {
         printedChars += width;
-        result.logs.push({ cls: 'action', msg: '%' + width + 'c \u2192 output ' + width + ' characters of padding (total printed: ' + printedChars + ')' });
+        result.logs.push({ cls: 'action', msg: '%' + width + 'c \u2192 read slot ' + (stackIdx + 1) + ', output ' + width + ' characters (total printed: ' + printedChars + ')' });
+        stackIdx++;
       } else if ((action === 'x' || action === 'p') && stackIdx < stackSlots.length) {
         const sv = stackSlots[stackIdx];
         const hexVal = (sv.value >>> 0).toString(16).padStart(Math.max(8, width), '0');
@@ -282,7 +286,7 @@ export function simulateFmtWrite(
           result.logs.push({ cls: 'warn', msg: 'Wrote to ' + hex8(sv.value) + ' \u2014 not authorized. Use %x to advance to slot 4 first.' });
         }
         stackIdx++;
-        i += seqWriteMatch[0].length + 1; // +1 for the %
+        i += seqWriteMatch[0].length;
         continue;
       }
 
@@ -290,7 +294,7 @@ export function simulateFmtWrite(
       if ((spec === 'x' || spec === 'p') && stackIdx < stackSlots.length) {
         const sv = stackSlots[stackIdx];
         const hexVal = (sv.value >>> 0).toString(16).padStart(8, '0');
-        printedChars += hexVal.length;
+        printedChars += spec === 'p' ? hexVal.length + 2 : hexVal.length;
         result.logs.push({ cls: 'action', msg: '%' + spec + ' \u2192 read slot ' + (stackIdx + 1) + ': <span class="log-addr">0x' + hexVal + '</span> <span class="log-label">(' + sv.label + ')</span>' });
         stackIdx++;
         i += 2;

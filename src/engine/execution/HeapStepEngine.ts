@@ -63,8 +63,8 @@ export const HOS_STEPS: HeapGuidedStep[] = [
   { srcLine: 5, log: [['action', 'char stack_buf[64] \u2014 a 64-byte buffer. We will build a fake chunk here.']] },
   { srcLine: 6, log: [['info', 'A real chunk has an 8-byte header: 4 bytes prev_size + 4 bytes size.']] },
   { srcLine: 7, log: [['info', 'For a 16-byte data chunk, total size is 24 (0x18). With PREV_INUSE set: 0x19.']] },
-  { srcLine: 10, log: [['info', 'glibc checks the NEXT chunk\'s header too. We need a valid header at offset +24.']] },
-  { done: true, log: [['info', 'Write the fake headers: [prev_size: 00 00 00 00] [size: 19 00 00 00] [16 bytes data] [next prev_size: 00 00 00 00] [next size: 19 00 00 00]']] },
+  { srcLine: 10, log: [['info', 'On glibc 2.27, tcache free() does NOT validate the next chunk\'s header. Only the fastbin path checks it.']] },
+  { done: true, log: [['info', 'Write the fake header: [prev_size: 00 00 00 00] [size: 19 00 00 00]. tcache accepts it without further checks!']] },
 ];
 
 export const HOO_STEPS: HeapGuidedStep[] = [

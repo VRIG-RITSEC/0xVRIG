@@ -43,7 +43,7 @@ export const exercise: Exercise = {
   asmArch: 'x86-64',
   asmInstructions: instructions,
   asmQuiz: [
-    { question: 'What value does "lea rax, [rip + 0xff5]" compute? RIP after this instruction is 0x55555400b. Give rax in hex.', answer: 0x555555000, format: 'hex', hint: 'lea with [rip + offset] computes rip_after_instruction + offset. 0x55555400b + 0xff5 = 0x555555000.' },
+    { question: 'What value does "lea rax, [rip + 0xff5]" compute? RIP after this instruction is 0x55555555400b. Give rax in hex.', answer: 0x555555555000, format: 'hex', hint: 'lea with [rip + offset] computes rip_after_instruction + offset. 0x55555555400b + 0xff5 = 0x555555555000.' },
     { question: 'If the PIE binary is reloaded at base 0x7fff00000000 instead of 0x555555554000, does "lea rax, [rip + 0xff5]" still compute the correct address? (1=yes, 0=no)', answer: 1, format: 'decimal', hint: 'RIP-relative addressing automatically adjusts -- the offset from the instruction to the target is the same regardless of where the binary is loaded.' },
     { question: 'Does "mov rcx, 0x55555000" (absolute address) still work if the binary is loaded at a different base? (1=yes, 0=no)', answer: 0, format: 'decimal', hint: 'Absolute addresses are hardcoded at compile time. If ASLR moves the binary, the hardcoded address points to the wrong location.' },
   ],

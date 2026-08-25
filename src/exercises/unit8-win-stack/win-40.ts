@@ -4,7 +4,7 @@ export const win40: Exercise = {
   id: 'win-40',
   unitId: 'unit8-win-stack',
   title: '40: SEH Overwrite',
-  desc: 'Classic SEH exploit! The buffer is 16 bytes. Overflow it to overwrite the return address with <code>win()</code>. In a real SEH exploit you\'d overwrite the handler field with a POP POP RET gadget address and put a short jump in nSEH, but here just reach the return address.',
+  desc: 'Classic SEH exploit! The buffer is 16 bytes inside a <code>__try</code> block, which places an SEH record on the stack. Overflow it to overwrite the return address with <code>win()</code>. The overflow corrupts the SEH handler pointer, and when the null dereference triggers an exception, the OS walks the SEH chain and dispatches through the corrupted handler. In a real SEH exploit you\'d overwrite the handler field with a POP POP RET gadget address and put a short jump in nSEH, but here just reach the return address.',
   source: {
     c: [
       { text: '#include <stdio.h>', cls: '' },
@@ -17,9 +17,11 @@ export const win40: Exercise = {
       { text: 'void win() { WinExec("calc", 0); }', cls: '' },
       { text: '', cls: '' },
       { text: 'void vuln() {', cls: '', fn: true },
-      { text: '    char buf[16];', cls: '' },
-      { text: '    gets(buf);', cls: 'highlight vuln' },
-      { text: '    *(int*)0 = 0;  // trigger exception', cls: '' },
+      { text: '    __try {', cls: '' },
+      { text: '        char buf[16];', cls: '' },
+      { text: '        gets(buf);  // overflow corrupts SEH record', cls: 'highlight vuln' },
+      { text: '        *(int*)0 = 0;  // crash triggers SEH dispatch', cls: '' },
+      { text: '    } __except(EXCEPTION_EXECUTE_HANDLER) {}', cls: '' },
       { text: '}', cls: '' },
     ],
   },

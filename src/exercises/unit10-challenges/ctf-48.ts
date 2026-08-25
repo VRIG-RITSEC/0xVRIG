@@ -4,7 +4,7 @@ export const ctf48: Exercise = {
   id: 'ctf-48',
   unitId: 'unit10-challenges',
   title: 'Heap Sandbox',
-  desc: '<b>Free-form heap exploitation!</b> A program allocates two chunks. Chunk A has user data, Chunk B has a function pointer. Exploit a use-after-free: free A, allocate a new chunk that reuses A\'s memory, and overwrite B\'s function pointer. Use the guided steps to execute the attack.',
+  desc: '<b>Free-form heap exploitation!</b> A program allocates two chunks. Chunk A has user data, Chunk B has a function pointer. Exploit a heap overflow: overflow Chunk A\'s data past its boundary to overwrite Chunk B\'s function pointer with the address of win(). Use the guided steps to execute the attack.',
   source: {
     c: [
       { text: '#include <stdlib.h>', cls: 'prep' },
@@ -35,8 +35,8 @@ export const ctf48: Exercise = {
   showSymbols: true,
   showCalc: true,
   check: (_sim: any, heap: any, symbols: Record<string, number>) => {
-    if (!heap || !heap.funcPtrs?.handler) return false;
-    return heap.funcPtrs.handler.current === symbols.win;
+    if (!heap || !heap.funcPtrs?.action) return false;
+    return heap.funcPtrs.action.current === symbols.win;
   },
   protections: [
     { name: 'NX', status: 'active' },

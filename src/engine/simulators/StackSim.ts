@@ -70,7 +70,7 @@ export class StackSim {
     this.origSavedEbp = savedEbp!;
     this.canaryValue = 0;
     if (this.useCanary) {
-      this.canaryValue = (Math.random() * 0xffffffff) >>> 0;
+      this.canaryValue = (((Math.random() * 0xffffff) >>> 0) << 8) >>> 0;
       this._writeLE(this.bufSize, this.canaryValue, this.canarySize);
     }
     this._writeLE(this.bufSize + this.canarySize, savedEbp!, this.ebpSize);

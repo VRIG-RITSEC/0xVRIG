@@ -4,7 +4,7 @@ export const ctf52: Exercise = {
   id: 'ctf-52',
   unitId: 'unit10-challenges',
   title: 'CTF: Windows',
-  desc: '<b>CTF Challenge!</b> A Windows-style exercise combining SEH overwrite concepts with a stack overflow. Overflow the buffer to reach the SEH handler, overwrite it with win(), and trigger an exception. This simulates the classic Windows exploit pattern.',
+  desc: '<b>CTF Challenge!</b> A Windows-style exercise with a classic stack buffer overflow. Overflow the buffer past the saved frame pointer to overwrite the return address with the address of win(). The source shows SEH setup for context, but the exploit path here is a standard return-address overwrite.',
   source: {
     c: [
       { text: '// CTF Windows — SEH Overwrite', cls: 'comment' },
@@ -43,5 +43,5 @@ export const ctf52: Exercise = {
     { name: 'SEHOP', status: 'disabled' },
   ],
   winTitle: 'CTF Windows Solved!',
-  winMsg: 'SEH overwrite exploitation — a Windows classic!',
+  winMsg: 'Return-address overwrite on a Windows-style stack layout!',
 };

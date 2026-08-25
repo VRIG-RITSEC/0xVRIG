@@ -365,12 +365,20 @@ export class X86Emulator implements Emulator {
         const src = this.parseOperand(ops[0]);
         const accReg = this.state.arch === 'x86' ? 'eax' : 'rax';
         const hiReg = this.state.arch === 'x86' ? 'edx' : 'rdx';
-        const a = this.state.registers[accReg];
-        const b = this.readOperand(src);
-        const result = Math.imul(a, b) >>> 0;
-        this.state.registers[accReg] = result;
-        this.state.registers[hiReg] = 0;
-        this.updateFlags(result);
+        const a = this.state.registers[accReg] >>> 0;
+        const b = this.readOperand(src) >>> 0;
+        // Split into 16-bit halves to compute full 64-bit result without BigInt
+        const aLo = a & 0xFFFF, aHi = (a >>> 16) & 0xFFFF;
+        const bLo = b & 0xFFFF, bHi = (b >>> 16) & 0xFFFF;
+        const p0 = aLo * bLo;
+        const p1 = aHi * bLo + aLo * bHi;
+        const p2 = aHi * bHi;
+        const lo = (p0 + ((p1 & 0xFFFF) << 16)) >>> 0;
+        const carry = ((p0 >>> 16) + (p1 & 0xFFFF)) >>> 16;
+        const hi = (p2 + Math.trunc(p1 / 65536) + carry) >>> 0;
+        this.state.registers[accReg] = lo;
+        this.state.registers[hiReg] = hi;
+        this.updateFlags(lo);
         this.state.registers[this.ipReg] = nextAddr;
         break;
       }

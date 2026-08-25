@@ -4,7 +4,7 @@ const exercise: Exercise = {
   id: 'glibc-108',
   unitId: 'unit19-glibc-bypass',
   title: '108: Double-Free on glibc 2.31',
-  desc: '<b>Goal:</b> On glibc 2.31+, tcache stores a <strong>key</strong> at <code>chunk+0x10</code> (offset 8 in user data). If the key matches the tcache_perthread address, free() detects double-free and aborts. To bypass: overwrite the key field before the second free. This simulates a UAF write that clears the key, enabling the classic double-free.',
+  desc: '<b>Goal:</b> On glibc 2.31+, tcache stores a <strong>key</strong> at <code>data + sizeof(void*)</code> (data+4 on 32-bit, data+8 on 64-bit). If the key matches the tcache_perthread address, free() detects double-free and aborts. To bypass: overwrite the key field before the second free. This simulates a UAF write that clears the key, enabling the classic double-free.',
   source: {
     c: [
       { text: '// glibc 2.31 — tcache double-free detection', cls: 'cmt' },
@@ -52,7 +52,7 @@ const exercise: Exercise = {
       srcLine: 5,
     },
     {
-      log: ['action', 'free(a) — A goes to tcache. The <strong>tcache key</strong> is written at A+0x10 (data+8).'],
+      log: ['action', 'free(a) — A goes to tcache. The <strong>tcache key</strong> is written at A+0x0c (data+4).'],
       vizAction: (_sim: any, heap: any) => {
         if (!heap) return;
         const addr = heap._nameMap?.A;

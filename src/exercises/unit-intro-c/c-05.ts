@@ -8,6 +8,7 @@ const c05: Exercise = {
   source: {
     c: [
       { text: '#include <stdio.h>', cls: '' },
+      { text: '#include <string.h>', cls: '' },
       { text: '', cls: '' },
       { text: 'struct Player {', cls: '' },
       { text: '    int hp;        // offset 0, 4 bytes', cls: 'highlight' },

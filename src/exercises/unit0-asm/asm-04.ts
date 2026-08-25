@@ -10,7 +10,7 @@ const instructions: AsmInstruction[] = [
   { addr: 0x08048010, bytes: [0x40], mnemonic: 'inc', operands: 'eax', comment: '' },
   { addr: 0x08048011, bytes: [0x48], mnemonic: 'dec', operands: 'eax', comment: 'dst = dst - 1' },
   { addr: 0x08048012, bytes: [0xb9, 0x04, 0x00, 0x00, 0x00], mnemonic: 'mov', operands: 'ecx, 4', comment: '' },
-  { addr: 0x08048017, bytes: [0xf7, 0xe1], mnemonic: 'mul', operands: 'ecx', comment: 'EAX = EAX * operand' },
+  { addr: 0x08048017, bytes: [0xf7, 0xe1], mnemonic: 'mul', operands: 'ecx', comment: 'EDX:EAX = EAX * operand (EDX is clobbered)' },
   { addr: 0x08048019, bytes: [0xf4], mnemonic: 'hlt', operands: '', comment: '' },
 ];
 
@@ -18,7 +18,7 @@ export const asm04: Exercise = {
   id: 'asm-04',
   unitId: 'unit0-asm',
   title: 'Arithmetic',
-  desc: '<b>Goal:</b> Practice arithmetic instructions. ADD adds, SUB subtracts, INC/DEC add/subtract 1, MUL multiplies EAX by the operand. Trace through and predict EAX\'s final value before stepping!',
+  desc: '<b>Goal:</b> Practice arithmetic instructions. ADD adds, SUB subtracts, INC/DEC add/subtract 1, MUL multiplies EAX by the operand (result in EDX:EAX). Trace through and predict EAX\'s final value before stepping!',
   source: {
     c: [
       { text: '// Arithmetic Instructions', cls: 'comment' },
@@ -26,7 +26,7 @@ export const asm04: Exercise = {
       { text: '// SUB dst, src  → dst = dst - src', cls: 'comment' },
       { text: '// INC dst       → dst = dst + 1', cls: 'comment' },
       { text: '// DEC dst       → dst = dst - 1', cls: 'comment' },
-      { text: '// MUL src       → EAX = EAX * src', cls: 'comment' },
+      { text: '// MUL src       → EDX:EAX = EAX * src (EDX clobbered)', cls: 'comment' },
       { text: '', cls: '' },
       { text: 'mov eax, 10', cls: 'asm' },
       { text: 'mov ebx, 5', cls: 'asm' },

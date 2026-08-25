@@ -31,11 +31,13 @@ const REGISTER_DISPLAY: Record<string, string> = {
 type ConditionCode =
   | 'eq' | 'ne' | 'gt' | 'lt' | 'ge' | 'le'
   | 'cs' | 'hs' | 'cc' | 'lo' | 'mi' | 'pl'
+  | 'hi' | 'ls' | 'vs' | 'vc'
   | 'al' | '';
 
 const CONDITION_CODES: ConditionCode[] = [
   'eq', 'ne', 'gt', 'lt', 'ge', 'le',
   'cs', 'hs', 'cc', 'lo', 'mi', 'pl',
+  'hi', 'ls', 'vs', 'vc',
   'al',
 ];
 
@@ -259,7 +261,11 @@ export class ArmEmulator implements Emulator {
   }
 
   private getReg(name: string): number {
-    return this.state.registers[this.canonReg(name)] ?? 0;
+    const canon = this.canonReg(name);
+    const val = this.state.registers[canon] ?? 0;
+    // ARM pipeline: reading PC returns current instruction address + 8
+    if (canon === 'r15') return u32(val + 8);
+    return val;
   }
 
   private setReg(name: string, value: number): void {
@@ -307,12 +313,24 @@ export class ArmEmulator implements Emulator {
   }
 
   private applyShift(value: number, shiftType: string, amount: number): number {
-    amount = amount & 0x1f;
+    // ARM uses full 8-bit shift amount with defined behavior for amounts >= 32
+    amount = amount & 0xff;
     switch (shiftType) {
-      case 'LSL': return u32(value << amount);
-      case 'LSR': return value >>> amount;
-      case 'ASR': return u32(toSigned32(value) >> amount);
-      case 'ROR': return u32((value >>> amount) | (value << (32 - amount)));
+      case 'LSL':
+        if (amount >= 32) return 0;
+        return u32(value << amount);
+      case 'LSR':
+        if (amount >= 32) return 0;
+        return value >>> amount;
+      case 'ASR':
+        if (amount >= 32) return (value & 0x80000000) ? 0xffffffff : 0;
+        return u32(toSigned32(value) >> amount);
+      case 'ROR': {
+        if (amount === 0) return value;
+        const rot = amount & 31;
+        if (rot === 0) return value;
+        return u32((value >>> rot) | (value << (32 - rot)));
+      }
       default: return value;
     }
   }
@@ -445,6 +463,10 @@ export class ArmEmulator implements Emulator {
       case 'lo': return !C;
       case 'mi': return N;
       case 'pl': return !N;
+      case 'hi': return C && !Z;
+      case 'ls': return !C || Z;
+      case 'vs': return V;
+      case 'vc': return !V;
       default: return true;
     }
   }
@@ -584,8 +606,6 @@ export class ArmEmulator implements Emulator {
         const op2 = this.resolveOperand2(ops[1]);
         const result = u32(rn & op2);
         this.updateNZ(result);
-        this.state.flags.C = false;
-        this.state.flags.V = false;
         this.setReg('pc', nextAddr);
         break;
       }
@@ -657,10 +677,11 @@ export class ArmEmulator implements Emulator {
       }
 
       case 'bx': {
-        const target = this.getReg(ops[0]);
+        const raw = this.state.registers[this.canonReg(ops[0])] ?? 0;
+        // Bit 0 selects Thumb mode; clear it for the branch address
+        const target = u32(raw & ~1);
         this.setReg('pc', target);
-        /* If the target is not a known instruction address, halt. */
-        if (!this.instrMap.has(u32(target))) {
+        if (!this.instrMap.has(target)) {
           this.state.halted = true;
         }
         break;

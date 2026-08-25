@@ -37,7 +37,7 @@ const ex07FmtRead: Exercise = {
   },
   winTitle: 'Secret Leaked!',
   winMsg: 'You used %x to walk up the stack and read the secret value. In real exploits, this technique leaks canaries, return addresses, and heap pointers — anything stored on the stack.',
-  realWorld: 'CVE-2012-0809: A format string vulnerability in sudo allowed local users to escalate to root via crafted environment strings passed to sudo_debug().',
+  realWorld: 'CVE-2012-0809: A format string vulnerability in sudo allowed local users to escalate to root by invoking sudo through a symlink with a crafted program name (argv[0]) that was passed to sudo_debug().',
 };
 
 export default ex07FmtRead;

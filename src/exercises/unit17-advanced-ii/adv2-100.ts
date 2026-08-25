@@ -16,7 +16,7 @@ const instructions: AsmInstruction[] = [
   { addr: 0x08048005, bytes: [0xbb, 0x00, 0x93, 0x04, 0x08], mnemonic: 'mov', operands: 'ebx, 0x08049300', comment: 'ebx = pointer to "/bin/sh"' },
   { addr: 0x0804800a, bytes: [0x31, 0xc9], mnemonic: 'xor', operands: 'ecx, ecx', comment: 'ecx = NULL (argv)' },
   { addr: 0x0804800c, bytes: [0x31, 0xd2], mnemonic: 'xor', operands: 'edx, edx', comment: 'edx = NULL (envp)' },
-  { addr: 0x0804800e, bytes: [0xcd, 0x80], mnemonic: 'nop', operands: '', comment: 'int 0x80 — BLOCKED by seccomp! Process killed with SIGSYS.' },
+  { addr: 0x0804800e, bytes: [0xcd, 0x80], mnemonic: 'int', operands: '0x80', comment: 'int 0x80 — BLOCKED by seccomp! Process killed with SIGSYS.' },
   // Allowed syscall path: use write(1, ...) to exfiltrate data instead
   { addr: 0x08048010, bytes: [0xb8, 0x04, 0x00, 0x00, 0x00], mnemonic: 'mov', operands: 'eax, 4', comment: 'syscall number 4 = write (ALLOWED)' },
   { addr: 0x08048015, bytes: [0xbb, 0x01, 0x00, 0x00, 0x00], mnemonic: 'mov', operands: 'ebx, 1', comment: 'fd = 1 (stdout)' },

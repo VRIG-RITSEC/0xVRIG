@@ -57,7 +57,7 @@ const exercise: Exercise = {
       srcLine: 5,
     },
     {
-      log: ['action', 'free(A) — A is freed and placed in unsorted bin (too large for tcache on 2.23). A\'s PREV_INUSE is cleared on B\'s header.'],
+      log: ['action', 'free(A) — A is freed and placed in unsorted bin (no tcache in glibc 2.23; too large for fastbins). A\'s PREV_INUSE is cleared on B\'s header.'],
       vizAction: (_sim: any, heap: any) => {
         if (!heap) return;
         const addr = heap._nameMap?.A;

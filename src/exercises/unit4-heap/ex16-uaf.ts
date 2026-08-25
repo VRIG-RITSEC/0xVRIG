@@ -40,7 +40,7 @@ const ex16Uaf: Exercise = {
   },
   winTitle: 'FLAG{use_after_free}',
   winMsg: 'The freed User struct was recycled for the Note allocation. Your data overwrote the function pointer. When the program called u->action(), it jumped to YOUR address. This is use-after-free \u2014 one of the most common vulnerability classes in browsers and kernels.',
-  realWorld: 'CVE-2022-0847 (Dirty Pipe): A use-after-free-like bug in Linux pipe handling allowed any user to overwrite read-only files, including /etc/passwd.',
+  realWorld: 'CVE-2021-4154: A use-after-free in Linux kernel cgroup1 allowed an unprivileged user to escalate to root by exploiting a dangling file descriptor reference after a cgroup was destroyed.',
 };
 
 export default ex16Uaf;

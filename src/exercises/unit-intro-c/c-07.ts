@@ -33,7 +33,7 @@ const c07: Exercise = {
     {
       action: 'init',
       srcLine: 7,
-      log: ['warn', 'strcpy(buf, "AAAAAAAAAAAAAAAA") copies 16 bytes (16 A characters + a null terminator) into buf, which is only 8 bytes. strcpy does not check the destination size -- it just keeps copying until it hits the null byte in the source string.'],
+      log: ['warn', 'strcpy(buf, "AAAAAAAAAAAAAAAA") copies 17 bytes (16 A characters + a null terminator) into buf, which is only 8 bytes. strcpy does not check the destination size -- it just keeps copying until it hits the null byte in the source string.'],
       vizAction: (sim: any) => { if (!sim) return; sim.writeWord(0, [0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41]); sim.markRegion(0, 8); },
     },
     {

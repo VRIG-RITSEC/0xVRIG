@@ -36,7 +36,7 @@ export interface MallocResult {
 // Offset  Field          Bytes   Notes
 //   0     Size             2     In 8-byte granularity units
 //   2     Flags            1     BUSY=0x01, EXTRA=0x02, FILL=0x04, ...
-//   3     SmallTagIndex    1     Checksum: (Size ^ Flags ^ PrevSize) & 0xFF
+//   3     SmallTagIndex    1     Checksum: (Size_lo ^ Size_hi ^ Flags) & 0xFF
 //   4     PreviousSize     2     Previous block size (8-byte units)
 //   6     SegmentOffset    1     (unused in simulation)
 //   7     UnusedBytes      1     Tail slack
@@ -48,8 +48,8 @@ const GRANULARITY = 8;
 const FLAG_BUSY = 0x01;
 const FLAG_EXTRA = 0x02;
 
-// LFH activation threshold: 17 allocations of the same size class
-const LFH_ACTIVATION_THRESHOLD = 17;
+// LFH activation threshold: 18 consecutive allocations of the same size class
+const LFH_ACTIVATION_THRESHOLD = 18;
 
 // Number of back-end ListHints buckets (index 0..127)
 const LIST_HINTS_COUNT = 128;
@@ -151,14 +151,12 @@ export class WinHeapSim {
   /**
    * Compute the SmallTagIndex checksum for the *plaintext* header fields.
    *
-   * SmallTagIndex = (SizeLo ^ SizeHi ^ Flags ^ PrevSizeLo ^ PrevSizeHi) & 0xFF
+   * SmallTagIndex = (SizeLo ^ SizeHi ^ Flags) & 0xFF
    */
-  _computeSmallTagIndex(sizeUnits: number, flags: number, prevSizeUnits: number): number {
+  _computeSmallTagIndex(sizeUnits: number, flags: number, _prevSizeUnits: number): number {
     const sizeLo = sizeUnits & 0xFF;
     const sizeHi = (sizeUnits >>> 8) & 0xFF;
-    const prevLo = prevSizeUnits & 0xFF;
-    const prevHi = (prevSizeUnits >>> 8) & 0xFF;
-    return (sizeLo ^ sizeHi ^ flags ^ prevLo ^ prevHi) & 0xFF;
+    return (sizeLo ^ sizeHi ^ flags) & 0xFF;
   }
 
   // ── Header read / write ─────────────────────────────────────────
@@ -319,6 +317,27 @@ export class WinHeapSim {
     if (!list) return false;
     const idx = list.indexOf(chunkAddr);
     if (idx === -1) return false;
+
+    // Patch Flink/Blink in neighboring chunks (prev->Flink = node->Flink; next->Blink = node->Blink)
+    const dataAddr = chunkAddr + HEAP_ENTRY_SIZE;
+    const { flink, blink } = this._readListEntry(dataAddr);
+    const sentinel = (this.baseAddr + 0xFFFF0000) >>> 0;
+
+    // Patch prev node's Flink
+    if (idx > 0) {
+      const prevAddr = list[idx - 1] + HEAP_ENTRY_SIZE;
+      this._writeLE(prevAddr, flink, 4);
+      this.written[prevAddr] = 1; this.written[prevAddr + 1] = 1;
+      this.written[prevAddr + 2] = 1; this.written[prevAddr + 3] = 1;
+    }
+
+    // Patch next node's Blink
+    if (idx < list.length - 1) {
+      const nextAddr = list[idx + 1] + HEAP_ENTRY_SIZE;
+      this._writeLE(nextAddr + 4, blink, 4);
+      for (let i = 4; i < 8; i++) this.written[nextAddr + i] = 1;
+    }
+
     list.splice(idx, 1);
     return true;
   }

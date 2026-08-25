@@ -194,9 +194,9 @@ describe('WinHeapSim', () => {
   // ── 5. LFH activation after 17 allocations ────────────────────
 
   describe('LFH activation', () => {
-    it('does not activate LFH before 17 allocations', () => {
+    it('does not activate LFH before 18 allocations', () => {
       const heap = new WinHeapSim(8192);
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < 17; i++) {
         heap.malloc(16);
       }
       const chunkSize = 24; // 16 + 8 header -> aligned to 24
@@ -204,9 +204,9 @@ describe('WinHeapSim', () => {
       expect(heap.lfhBuckets[units]?.active).toBeFalsy();
     });
 
-    it('activates LFH on the 17th allocation of same size', () => {
+    it('activates LFH on the 18th allocation of same size', () => {
       const heap = new WinHeapSim(8192);
-      for (let i = 0; i < 17; i++) {
+      for (let i = 0; i < 18; i++) {
         heap.malloc(16);
       }
       const chunkSize = 24; // aligned
@@ -216,7 +216,7 @@ describe('WinHeapSim', () => {
 
     it('LFH bucket has pre-allocated slots', () => {
       const heap = new WinHeapSim(8192);
-      for (let i = 0; i < 17; i++) {
+      for (let i = 0; i < 18; i++) {
         heap.malloc(16);
       }
       const chunkSize = 24;
@@ -228,11 +228,11 @@ describe('WinHeapSim', () => {
 
     it('serves allocations from LFH after activation', () => {
       const heap = new WinHeapSim(8192);
-      // First 17 go through back-end and trigger activation
-      for (let i = 0; i < 17; i++) {
+      // First 18 go through back-end and trigger activation
+      for (let i = 0; i < 18; i++) {
         heap.malloc(16);
       }
-      // 18th should come from LFH
+      // 19th should come from LFH
       const r = heap.malloc(16)!;
       const chunk = heap.chunks.get(r.addr)!;
       expect(chunk.lfh).toBe(true);

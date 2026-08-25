@@ -3,8 +3,9 @@
 import { use, useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useExerciseContext } from '@/state/ExerciseContext';
-import { getExercise, getAllExercises } from '@/exercises/registry';
+import { getExercise, getAllExercises, UNITS, TRACKS } from '@/exercises/registry';
 import { imagineRitExercises } from '@/exercises/imagine-rit';
+import { getUnitEra } from '@/lib/era';
 import { StackSim } from '@/engine/simulators/StackSim';
 import { HeapSim } from '@/engine/simulators/HeapSim';
 import { WinHeapSim } from '@/engine/simulators/WinHeapSim';
@@ -235,6 +236,19 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
   useEffect(() => {
     const exercise = getExercise(id);
     if (!exercise) return;
+    const era = getUnitEra(exercise.unitId);
+    const app = document.getElementById('app');
+    if (app) app.setAttribute('data-era', era);
+    document.body.setAttribute('data-era', era);
+    return () => {
+      if (app) app.removeAttribute('data-era');
+      document.body.removeAttribute('data-era');
+    };
+  }, [id]);
+
+  useEffect(() => {
+    const exercise = getExercise(id);
+    if (!exercise) return;
 
     const symbols = computeSymbols(exercise);
     dispatch({ type: 'SET_SYMBOLS', symbols });
@@ -248,7 +262,7 @@ export default function ExercisePageClient({ params }: { params: Promise<{ id: s
       let extraSize = 0;
       if (exercise.ret2libc) extraSize = 8;
       else if (exercise.rop) extraSize = 40;
-      else if (exercise.srop) extraSize = 28;
+      else if (exercise.srop) extraSize = 44;
       else if (exercise.pivot) extraSize = 40;
 
       const sim = new StackSim({

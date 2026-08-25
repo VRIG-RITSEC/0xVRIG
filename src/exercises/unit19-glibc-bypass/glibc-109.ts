@@ -3,11 +3,11 @@ import { Exercise } from '../types';
 const exercise: Exercise = {
   id: 'glibc-109',
   unitId: 'unit19-glibc-bypass',
-  title: '109: Tcache Poison on glibc 2.35',
-  desc: '<b>Goal:</b> On glibc 2.35+, tcache fd pointers are <strong>mangled</strong> with PROTECT_PTR: <code>fd = (pos >> 12) ^ target</code>. You can\'t just write a plain address as fd — you need to know the heap base to XOR correctly. This exercise shows how a heap leak enables tcache poisoning despite safe-linking.',
+  title: '109: Tcache Poison on glibc 2.32+',
+  desc: '<b>Goal:</b> On glibc 2.32+, tcache fd pointers are <strong>mangled</strong> with PROTECT_PTR: <code>fd = (pos >> 12) ^ target</code>. You can\'t just write a plain address as fd — you need to know the heap base to XOR correctly. This exercise shows how a heap leak enables tcache poisoning despite safe-linking.',
   source: {
     c: [
-      { text: '// glibc 2.35 — safe-linking (PROTECT_PTR)', cls: 'cmt' },
+      { text: '// glibc 2.32 — safe-linking (PROTECT_PTR)', cls: 'cmt' },
       { text: '// fd = (chunk_data_addr >> 12) ^ next', cls: 'cmt' },
       { text: '#include <stdlib.h>', cls: '' },
       { text: '', cls: '' },
@@ -33,12 +33,12 @@ const exercise: Exercise = {
   mode: 'step',
   vizMode: 'heap',
   heapSize: 512,
-  glibcVersion: '2.35',
+  glibcVersion: '2.32',
   showLabels: true,
   steps: [
     {
       action: 'init',
-      log: ['info', 'glibc 2.35 introduced <strong>safe-linking</strong> (PROTECT_PTR). The fd pointer in freed tcache/fastbin chunks is XORed with <code>(chunk_data_address >> 12)</code>. This means writing a raw address into fd won\'t work — the allocator will demangle it and get garbage.'],
+      log: ['info', 'glibc 2.32 introduced <strong>safe-linking</strong> (PROTECT_PTR). The fd pointer in freed tcache/fastbin chunks is XORed with <code>(chunk_data_address >> 12)</code>. This means writing a raw address into fd won\'t work — the allocator will demangle it and get garbage.'],
     },
     {
       log: ['action', 'Allocating A (16 bytes) and B (16 bytes).'],
@@ -74,7 +74,7 @@ const exercise: Exercise = {
   ],
   check: () => true,
   winTitle: 'Safe-Linking Bypass!',
-  winMsg: 'glibc 2.35 safe-linking XORs fd with (addr >> 12). A heap address leak lets you compute the mangling key and craft valid fd pointers for tcache poisoning.',
+  winMsg: 'glibc 2.32 safe-linking XORs fd with (addr >> 12). A heap address leak lets you compute the mangling key and craft valid fd pointers for tcache poisoning.',
 };
 
 export default exercise;

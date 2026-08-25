@@ -2,7 +2,7 @@ import { Exercise } from '../types';
 import { AsmInstruction } from '@/engine/x86/types';
 
 const instructions: AsmInstruction[] = [
-  { addr: 0x00400000, bytes: [0x48, 0xb8, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41], mnemonic: 'mov', operands: 'rax, 0x41414141', comment: 'Overflow fills buffer with As' },
+  { addr: 0x00400000, bytes: [0x48, 0xb8, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41, 0x41], mnemonic: 'mov', operands: 'rax, 0x4141414141414141', comment: 'Overflow fills buffer with As' },
   { addr: 0x0040000a, bytes: [0x50], mnemonic: 'push', operands: 'rax', comment: 'Simulating buffer write to stack' },
   { addr: 0x0040000b, bytes: [0x50], mnemonic: 'push', operands: 'rax', comment: 'More As...' },
   { addr: 0x0040000c, bytes: [0x50], mnemonic: 'push', operands: 'rax', comment: 'Overwriting saved RBP' },
@@ -35,7 +35,7 @@ export const x6431: Exercise = {
       { text: '//   [system() addr]  ← ret target', cls: 'comment' },
       { text: '', cls: '' },
       { text: '; Building the payload on stack:', cls: 'label' },
-      { text: 'mov rax, 0x41414141 ; padding', cls: 'asm' },
+      { text: 'mov rax, 0x4141414141414141 ; padding', cls: 'asm' },
       { text: 'push rax            ; buf', cls: 'asm' },
       { text: 'push rax            ; buf', cls: 'asm' },
       { text: 'push rax            ; overwrite RBP', cls: 'asm' },

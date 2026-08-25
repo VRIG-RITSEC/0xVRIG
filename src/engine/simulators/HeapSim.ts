@@ -1,4 +1,4 @@
-export type GlibcVersion = '2.23' | '2.27' | '2.31' | '2.35';
+export type GlibcVersion = '2.23' | '2.27' | '2.29' | '2.31' | '2.32' | '2.35';
 
 export interface ChunkInfo {
   size: number;
@@ -37,7 +37,8 @@ const NON_MAIN_ARENA = 4;
 const SIZE_BITS = PREV_INUSE | IS_MMAPPED | NON_MAIN_ARENA;
 
 const TCACHE_MAX = 7;
-const FASTBIN_MAX = 64;
+const TCACHE_MAX_SIZE = 512; // 64 size classes * 8-byte alignment (32-bit)
+const FASTBIN_MAX = 72;
 
 // smallbin: sizes 16..1008 in 8-byte increments (index = size/8 - 1)
 const SMALLBIN_MAX = 1008;
@@ -102,11 +103,11 @@ export class HeapSim {
   }
 
   get hasTcacheKey(): boolean {
-    return versionAtLeast(this.glibcVersion, '2.31');
+    return versionAtLeast(this.glibcVersion, '2.29');
   }
 
   get hasSafeLinking(): boolean {
-    return versionAtLeast(this.glibcVersion, '2.35');
+    return versionAtLeast(this.glibcVersion, '2.32');
   }
 
   _writeLE(offset: number, value: number, size: number): void {
@@ -431,17 +432,23 @@ export class HeapSim {
 
     this.lastError = null;
 
-    // tcache key double-free check must happen before we clear allocated flag
-    if (this.hasTcacheKey && !chunk.allocated) {
-      const dataStart = chunkAddr + this.HEADER_SIZE;
-      const existingKey = this._readLE(dataStart + 4, 4);
-      if (existingKey === this.tcacheKeyAddr) {
-        this.lastError = 'free(): double free detected in tcache 2';
+    if (!chunk.allocated) {
+      // glibc 2.29+ detects tcache double-free via the tcache key
+      if (this.hasTcacheKey) {
+        const dataStart = chunkAddr + this.HEADER_SIZE;
+        const existingKey = this._readLE(dataStart + 4, 4);
+        if (existingKey === this.tcacheKeyAddr) {
+          this.lastError = 'free(): double free detected in tcache 2';
+          return false;
+        }
+      }
+      // glibc 2.27-2.28: tcache has NO double-free detection — allow it
+      if (this.hasTcache && !this.hasTcacheKey) {
+        // Re-allow: real glibc 2.27 blindly pushes to tcache regardless of size
+      } else if (!this.hasTcacheKey) {
         return false;
       }
     }
-
-    if (!chunk.allocated) return false;
 
     chunk.allocated = false;
     const chunkSize = chunk.size;
@@ -449,22 +456,11 @@ export class HeapSim {
 
     this._writeChunkHeader(chunkAddr, chunkSize, false);
 
-    // Update next chunk's prev_size and PREV_INUSE
-    const nextAddr = chunkAddr + chunkSize;
-    if (nextAddr < this.memorySize) {
-      this._writePrevSize(nextAddr, chunkSize);
-      const nextChunk = this.chunks.get(nextAddr);
-      if (nextChunk) {
-        nextChunk.prevInUse = false;
-        this._writeChunkHeader(nextAddr, nextChunk.size, nextChunk.allocated);
-      }
-    }
-
-    // tcache (glibc 2.27+)
-    if (this.hasTcache) {
+    // tcache (glibc 2.27+) — no PREV_INUSE clearing, no consolidation
+    if (this.hasTcache && chunkSize <= TCACHE_MAX_SIZE) {
       if (!this.tcache[chunkSize]) this.tcache[chunkSize] = [];
       if (this.tcache[chunkSize].length < TCACHE_MAX) {
-        // Write tcache key (glibc 2.31+)
+        // Write tcache key (glibc 2.29+)
         if (this.hasTcacheKey) {
           this._writeLE(dataStart + 4, this.tcacheKeyAddr, 4);
           this.written[dataStart + 4] = 1;
@@ -488,11 +484,11 @@ export class HeapSim {
       }
     }
 
-    // fastbins (chunks <= 64 bytes, no consolidation)
+    // fastbins (chunks <= FASTBIN_MAX, no consolidation, no PREV_INUSE clearing)
     if (chunkSize <= FASTBIN_MAX) {
       if (!this.fastbins[chunkSize]) this.fastbins[chunkSize] = [];
       const prevFd = this.fastbins[chunkSize].length > 0
-        ? this.fastbins[chunkSize][this.fastbins[chunkSize].length - 1] + this.HEADER_SIZE
+        ? this.fastbins[chunkSize][this.fastbins[chunkSize].length - 1]
         : 0;
       const storedFd = this._protectPtr(dataStart, prevFd);
       this._writeLE(dataStart, storedFd, 4);
@@ -504,7 +500,17 @@ export class HeapSim {
       return true;
     }
 
-    // Non-fastbin: consolidate then add to unsorted bin
+    // Non-fastbin: clear next chunk's PREV_INUSE, consolidate, then unsorted bin
+    const nextAddr = chunkAddr + chunkSize;
+    if (nextAddr < this.memorySize) {
+      this._writePrevSize(nextAddr, chunkSize);
+      const nextChunk = this.chunks.get(nextAddr);
+      if (nextChunk) {
+        nextChunk.prevInUse = false;
+        this._writeChunkHeader(nextAddr, nextChunk.size, nextChunk.allocated);
+      }
+    }
+
     let mergedAddr = chunkAddr;
 
     // Backward consolidation

@@ -3,6 +3,6 @@ export const BASE_SYMBOLS: Record<string, number> = {
   vuln:   0x08048054,
   win:    0x08048150,
   normal: 0x080480a0,
-  system: 0x08048200,
-  binsh:  0x08049300,
+  system: 0xf7e3a200,
+  binsh:  0xf7f5c300,
 };

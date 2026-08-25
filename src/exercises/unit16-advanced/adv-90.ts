@@ -4,7 +4,7 @@ const adv90: Exercise = {
   id: 'adv-90',
   unitId: 'unit16-advanced',
   title: '90: UAF + Vtable',
-  desc: '<b>Goal:</b> Combine use-after-free with vtable hijacking. A C++ object with virtual methods is allocated, freed, and then the dangling pointer is used to call a virtual method. Because the object was freed, its heap memory is returned to the allocator. If you allocate a new buffer of the same size, it lands in the same slot. You now control the bytes that the dangling pointer reads as the vptr.<br><br><b>Attack:</b> The freed <code>Widget</code> object was 16 bytes: <code>[vptr(4)][id(4)][data(8)]</code>. A new <code>malloc(16)</code> reclaims the same memory, and you write 16 bytes into it. The first 4 bytes overwrite where vptr was. When <code>w->action()</code> dereferences the vptr, it reads your controlled data. Write the address of <code>win()</code> in the first 4 bytes to hijack the virtual call.',
+  desc: '<b>Goal:</b> Combine use-after-free with vtable hijacking. A C++ object with virtual methods is allocated, freed, and then the dangling pointer is used to call a virtual method. Because the object was freed, its heap memory is returned to the allocator. If you allocate a new buffer of the same size, it lands in the same slot. You now control the bytes that the dangling pointer reads as the vptr.<br><br><b>Attack:</b> The freed <code>Widget</code> object was 16 bytes: <code>[vptr(4)][id(4)][data(8)]</code>. A new <code>malloc(16)</code> reclaims the same memory, and you write 16 bytes into it. Virtual dispatch uses double indirection: <code>vptr -> vtable -> function pointer</code>. The first 4 bytes overwrite the vptr. When <code>w->action()</code> is called, the CPU reads <code>vptr</code>, then dereferences <code>vptr[0]</code> to get the function address. Point the vptr at a fake vtable whose first entry is <code>win()</code> to hijack the virtual call.',
   source: {
     c: [
       { text: 'class Widget {', cls: '' },
@@ -21,7 +21,7 @@ const adv90: Exercise = {
       { text: '', cls: '' },
       { text: 'int main() {', cls: '' },
       { text: '    Widget *w = new Widget();', cls: '' },
-      { text: '    w->action = normal;', cls: '' },
+      { text: '    w->action();  // normal virtual call', cls: '' },
       { text: '    delete w;', cls: 'highlight vuln' },
       { text: '    // w is freed but pointer still exists!', cls: 'cmt' },
       { text: '    char *buf = (char*)malloc(16);', cls: 'highlight' },

@@ -32,7 +32,7 @@ const ex21UnsortedBin: Exercise = {
   },
   mode: 'heap-unsorted-bin',
   vizMode: 'heap',
-  glibcVersion: '2.27',
+  glibcVersion: '2.23',
   heapSize: 512,
   showSymbols: true,
   funcPtrAddr: 0x0804a040,

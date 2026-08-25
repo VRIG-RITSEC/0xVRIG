@@ -55,8 +55,15 @@ describe('HeapSim', () => {
       expect(heap.free(0xdeadbeef)).toBe(false);
     });
 
-    it('returns false for already-freed chunk', () => {
-      const heap = new HeapSim(1024);
+    it('allows double-free on glibc 2.27 (no tcache key)', () => {
+      const heap = new HeapSim(1024, '2.27');
+      const result = heap.malloc(16)!;
+      heap.free(result.addr);
+      expect(heap.free(result.addr)).toBe(true);
+    });
+
+    it('rejects double-free on glibc 2.31+ (tcache key)', () => {
+      const heap = new HeapSim(1024, '2.31');
       const result = heap.malloc(16)!;
       heap.free(result.addr);
       expect(heap.free(result.addr)).toBe(false);
@@ -272,7 +279,7 @@ describe('HeapSim', () => {
     });
 
     it('clears PREV_INUSE on next chunk when freed', () => {
-      const heap = new HeapSim(1024);
+      const heap = new HeapSim(1024, '2.23');
       const a = heap.malloc(128)!;
       const b = heap.malloc(128)!;
       heap.free(a.addr);

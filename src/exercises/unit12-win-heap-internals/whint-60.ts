@@ -4,11 +4,11 @@ const exercise: Exercise = {
   id: 'whint-60',
   unitId: 'unit12-win-heap-internals',
   title: '60: LFH Internals',
-  desc: '<b>Goal:</b> Understand the Low Fragmentation Heap (LFH). The LFH activates after <strong>17+ allocations</strong> of the same size class. Once active, it pre-allocates a <strong>UserBlocks</strong> region divided into fixed-size slots, and randomizes which slot is returned. This reduces fragmentation and adds exploit difficulty through unpredictable allocation order.',
+  desc: '<b>Goal:</b> Understand the Low Fragmentation Heap (LFH). The LFH activates after <strong>18+ allocations</strong> of the same size class. Once active, it pre-allocates a <strong>UserBlocks</strong> region divided into fixed-size slots, and randomizes which slot is returned. This reduces fragmentation and adds exploit difficulty through unpredictable allocation order.',
   source: {
     c: [
       { text: '// LFH activation demo', cls: 'cmt' },
-      { text: '// LFH triggers after 17+ same-size allocs', cls: 'cmt' },
+      { text: '// LFH triggers after 18+ same-size allocs', cls: 'cmt' },
       { text: '#include <windows.h>', cls: '' },
       { text: '', cls: '' },
       { text: 'int main() {', cls: '' },
@@ -17,7 +17,7 @@ const exercise: Exercise = {
       { text: '    for (int i = 0; i < 18; i++) {', cls: 'highlight' },
       { text: '        ptrs[i] = HeapAlloc(h, 0, 32);', cls: 'highlight' },
       { text: '    }', cls: '' },
-      { text: '    // After 17 allocs of size 32, LFH', cls: 'cmt' },
+      { text: '    // After 18 allocs of size 32, LFH', cls: 'cmt' },
       { text: '    // is now active for this bucket.', cls: 'cmt' },
       { text: '    // Alloc #18 comes from LFH UserBlocks', cls: 'cmt' },
       { text: '    for (int i = 0; i < 18; i++)', cls: '' },
@@ -48,7 +48,7 @@ const exercise: Exercise = {
     },
     {
       action: 'malloc', size: 32, name: 'A03', srcLine: 8,
-      log: ['action', 'HeapAlloc(h, 0, 32) -- alloc #3. The counter is still below 17. All these are back-end allocations from the FreeLists or segment commit.'],
+      log: ['action', 'HeapAlloc(h, 0, 32) -- alloc #3. The counter is still below 18. All these are back-end allocations from the FreeLists or segment commit.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('A03', 'data'); },
     },
     {
@@ -58,12 +58,12 @@ const exercise: Exercise = {
     },
     {
       action: 'malloc', size: 32, name: 'A17', srcLine: 8,
-      log: ['warn', 'HeapAlloc(h, 0, 32) -- alloc #17! The usage counter hits the activation threshold. The heap manager calls RtlpActivateLowFragmentationHeap() for bucket 4 (32/8). This creates an _LFH_HEAP structure and links it to this bucket. LFH is now ACTIVE for size 32.'],
-      vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('A17', 'data'); heap.annotateField?.('A17', 'size', 'LFH ACTIVATES'); },
+      log: ['action', 'HeapAlloc(h, 0, 32) -- alloc #17. The usage counter is nearing the activation threshold (18). Still served by the back-end. One more allocation of this size will trigger LFH activation for bucket 4.'],
+      vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('A17', 'data'); heap.annotateField?.('A17', 'size', 'back-end #17'); },
     },
     {
       action: 'malloc', size: 32, name: 'A18', srcLine: 8,
-      log: ['action', 'HeapAlloc(h, 0, 32) -- alloc #18. Now served by LFH! The LFH allocates a UserBlocks region: a contiguous memory block subdivided into fixed-size slots. Each slot is exactly (header + 32) bytes. The LFH picks a slot using a randomized bitmap scan, not FIFO.'],
+      log: ['action', 'HeapAlloc(h, 0, 32) -- alloc #18! The usage counter hits the activation threshold. LFH activates and this allocation is now served by LFH! The LFH allocates a UserBlocks region: a contiguous memory block subdivided into fixed-size slots. Each slot is exactly (header + 32) bytes. The LFH picks a slot using a randomized bitmap scan, not FIFO.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('A18', 'data'); heap.annotateField?.('A18', 'size', 'LFH slot (randomized)'); },
     },
     {
@@ -77,7 +77,7 @@ const exercise: Exercise = {
     },
     {
       action: 'done',
-      log: ['success', 'LFH activation demonstrated with all 18 allocations. Key facts: (1) LFH activates per-bucket after 17+ allocs of the same size. (2) Allocates from a UserBlocks region of fixed-size slots. (3) Uses bitmap-based tracking with randomized slot selection (Win8+). (4) Reduces fragmentation and raises the bar for heap manipulation attacks.'],
+      log: ['success', 'LFH activation demonstrated with all 18 allocations. Key facts: (1) LFH activates per-bucket after 18+ allocs of the same size. (2) Allocates from a UserBlocks region of fixed-size slots. (3) Uses bitmap-based tracking with randomized slot selection (Win8+). (4) Reduces fragmentation and raises the bar for heap manipulation attacks.'],
     },
   ],
   check() { return false; },

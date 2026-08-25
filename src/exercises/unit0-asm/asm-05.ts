@@ -17,13 +17,13 @@ export const asm05: Exercise = {
   id: 'asm-05',
   unitId: 'unit0-asm',
   title: 'CMP & Flags',
-  desc: '<b>Goal:</b> Understand CPU flags. CMP subtracts without storing the result — it only sets flags. <b>ZF</b> (Zero Flag) = result was 0. <b>SF</b> (Sign Flag) = result was negative. <b>CF</b> (Carry Flag) = unsigned borrow. TEST does AND and sets flags.',
+  desc: '<b>Goal:</b> Understand CPU flags. CMP subtracts without storing the result — it only sets flags. <b>ZF</b> (Zero Flag) = result was 0. <b>SF</b> (Sign Flag) = result\'s sign bit is set. <b>CF</b> (Carry Flag) = unsigned borrow. TEST does AND and sets flags. Note: signed less-than is SF != OF, not just SF alone.',
   source: {
     c: [
       { text: '// CMP & Flags', cls: 'comment' },
       { text: '// CMP a, b → computes a - b, sets flags', cls: 'comment' },
       { text: '// ZF = 1 if a == b (result is zero)', cls: 'comment' },
-      { text: '// SF = 1 if a < b  (result is negative)', cls: 'comment' },
+      { text: '// SF = 1 if result\'s sign bit is set (signed a < b is SF != OF)', cls: 'comment' },
       { text: '// CF = 1 if a < b  (unsigned borrow)', cls: 'comment' },
       { text: '// TEST a, b → computes a AND b, sets flags', cls: 'comment' },
       { text: '', cls: '' },

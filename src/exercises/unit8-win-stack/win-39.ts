@@ -4,7 +4,7 @@ export const win39: Exercise = {
   id: 'win-39',
   unitId: 'unit8-win-stack',
   title: '39: SEH on Stack',
-  desc: 'Windows SEH (Structured Exception Handling) stores handler records <b>on the stack</b>. This exercise has an 8-byte buffer with a simulated SEH record above it (4 bytes nSEH + 4 bytes handler). The total distance to the return address is 24 bytes (8 buf + 4 canary-like nSEH + 4 handler + 4 EBP + 4 ret). Overflow through everything to reach the return address.',
+  desc: 'Windows SEH (Structured Exception Handling) stores handler records <b>on the stack</b>. This exercise has an 8-byte buffer with a simulated SEH record above it (4 bytes nSEH + 4 bytes handler). The total distance to the return address is 20 bytes (8 buf + 4 nSEH + 4 handler + 4 EBP). Overflow through everything to reach the return address.',
   source: {
     c: [
       { text: '#include <stdio.h>', cls: '' },

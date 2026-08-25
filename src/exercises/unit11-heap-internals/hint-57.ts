@@ -4,7 +4,7 @@ const hint57: Exercise = {
   id: 'hint-57',
   unitId: 'unit11-heap-internals',
   title: '57: Arena & Threads',
-  desc: '<b>Goal:</b> Understand how ptmalloc2 manages concurrency with <strong>arenas</strong>. The main thread uses the <strong>main arena</strong> (backed by brk/sbrk). Additional threads get their own arenas (backed by mmap), up to a limit of <strong>8 * CPU cores</strong>. Each arena has its own set of bins, mutex, and top chunk.',
+  desc: '<b>Goal:</b> Understand how ptmalloc2 manages concurrency with <strong>arenas</strong>. The main thread uses the <strong>main arena</strong> (backed by brk/sbrk). Additional threads get their own arenas (backed by mmap), up to a limit of <strong>2 * CPU cores</strong> on 32-bit systems. Each arena has its own set of bins, mutex, and top chunk.',
   source: {
     c: [
       { text: '// Arena concept (pseudocode)', cls: 'cmt' },
@@ -47,7 +47,7 @@ const hint57: Exercise = {
     },
     {
       action: 'init', srcLine: 16,
-      log: ['info', 'A new thread is created. When it calls malloc, ptmalloc2 calls arena_get() to find an arena. First it tries to reuse an unlocked existing arena. If all are locked, it creates a new one (up to 8 * number_of_cores). Each arena is independent -- its own mutex, its own bins, its own top chunk.'],
+      log: ['info', 'A new thread is created. When it calls malloc, ptmalloc2 calls arena_get() to find an arena. First it tries to reuse an unlocked existing arena. If all are locked, it creates a new one (up to 2 * number_of_cores on 32-bit, 8 * cores on 64-bit). Each arena is independent -- its own mutex, its own bins, its own top chunk.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('M', 'header'); },
     },
     {
@@ -62,7 +62,7 @@ const hint57: Exercise = {
     },
     {
       action: 'done',
-      log: ['success', 'Arena summary: (1) Main arena uses brk(), thread arenas use mmap(). (2) Max arenas = 8 * cores to limit memory overhead. (3) The A bit in each chunk\'s size field identifies its arena. (4) Each arena has independent bins -- a tcache-poisoned chunk in one arena cannot directly affect another. Understanding arenas is critical for multi-threaded heap exploitation.'],
+      log: ['success', 'Arena summary: (1) Main arena uses brk(), thread arenas use mmap(). (2) Max arenas = 2 * cores (32-bit) or 8 * cores (64-bit) to limit memory overhead. (3) The A bit in each chunk\'s size field identifies its arena. (4) Each arena has independent bins -- a tcache-poisoned chunk in one arena cannot directly affect another. Understanding arenas is critical for multi-threaded heap exploitation.'],
     },
   ],
   check() { return false; },

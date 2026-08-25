@@ -4,7 +4,7 @@ const exercise: Exercise = {
   id: 'gap-114',
   unitId: 'unit20-teaching-gaps',
   title: '114: Partial Overwrite & ASLR Brute Force',
-  desc: '<b>Goal:</b> When ASLR randomizes addresses, you can still exploit by overwriting only the <strong>lowest 1-2 bytes</strong> of a return address. The bottom 12 bits (page offset) are never randomized. A 1-byte overwrite has 1/16 probability (4 bits of entropy), a 2-byte overwrite has 1/4096. Real exploits retry thousands of times.',
+  desc: '<b>Goal:</b> When ASLR randomizes addresses, you can still exploit by overwriting only the <strong>lowest 1-2 bytes</strong> of a return address. The bottom 12 bits (page offset) are never randomized. A 1-byte overwrite is deterministic (all 8 bits are within the page offset). A 2-byte overwrite has 4 bits of entropy (1/16 probability) since only bits 12-15 are randomized. Real exploits retry in a loop.',
   source: {
     c: [
       { text: '// Partial overwrite — bypass ASLR', cls: 'cmt' },
@@ -22,7 +22,7 @@ const exercise: Exercise = {
       { text: '', cls: '' },
       { text: '// Attack: overwrite last 2 bytes of ret', cls: 'cmt' },
       { text: '// to 0x??b0 (page offset of win)', cls: 'cmt' },
-      { text: '// 4 bits of entropy → 1/16 chance', cls: 'highlight' },
+      { text: '// 4 bits of ASLR entropy → 1/16 chance', cls: 'highlight' },
       { text: '// Run exploit in a loop until it hits!', cls: 'highlight' },
     ],
   },
@@ -40,7 +40,7 @@ const exercise: Exercise = {
       srcLine: 4,
     },
     {
-      log: ['info', '<strong>1-byte overwrite:</strong> Change <code>0x25</code> to <code>0xb0</code>. This changes the return from <code>0xf7d2a825</code> to <code>0xf7d2a8b0</code>. But we need <code>0xf7d2a7b0</code> — the high nibble is wrong! There\'s 4 bits of entropy in that nibble → <strong>1/16 probability</strong>.'],
+      log: ['info', '<strong>1-byte overwrite:</strong> Change <code>0x25</code> to <code>0xb0</code>. This changes the return from <code>0xf7d2a825</code> to <code>0xf7d2a8b0</code>. All 8 overwritten bits (bits 0-7) are within the 12-bit page offset, so this is <strong>deterministic</strong> — zero ASLR entropy. But we need <code>0xf7d2a7b0</code>, which differs in bits 8-11 (also page offset, also deterministic). A 1-byte overwrite simply cannot reach that target.'],
       srcLine: 15,
     },
     {

@@ -2,7 +2,8 @@ import { Exercise } from '../types';
 import { AsmInstruction } from '@/engine/x86/types';
 
 const instructions: AsmInstruction[] = [
-  // __libc_csu_init gadgets (universal in statically-linked x64 binaries)
+  // __libc_csu_init gadgets (universal in glibc-linked x64 binaries)
+  // NOTE: __libc_csu_init was removed in glibc 2.34 (August 2021)
   // Gadget 2 (at end of __libc_csu_init): pop rbx; pop rbp; pop r12; pop r13; pop r14; pop r15; ret
   { addr: 0x0040089a, bytes: [0x5b], mnemonic: 'pop', operands: 'rbx', comment: 'gadget2: RBX = 0 (index)' },
   { addr: 0x0040089b, bytes: [0x5d], mnemonic: 'pop', operands: 'rbp', comment: 'RBP = 1 (loop condition: RBX+1 == RBP)' },
@@ -14,7 +15,7 @@ const instructions: AsmInstruction[] = [
   // Gadget 1 (in __libc_csu_init body): uses R12-R15 to set up call
   { addr: 0x00400880, bytes: [0x4c, 0x89, 0xea], mnemonic: 'mov', operands: 'rdx, r13', comment: 'gadget1: RDX = R13 (3rd arg)' },
   { addr: 0x00400883, bytes: [0x4c, 0x89, 0xf6], mnemonic: 'mov', operands: 'rsi, r14', comment: 'RSI = R14 (2nd arg)' },
-  { addr: 0x00400886, bytes: [0x44, 0x89, 0xff], mnemonic: 'mov', operands: 'edi, r15', comment: 'EDI = R15d (1st arg, 32-bit)' },
+  { addr: 0x00400886, bytes: [0x44, 0x89, 0xff], mnemonic: 'mov', operands: 'edi, r15d', comment: 'EDI = R15d (1st arg, 32-bit)' },
   { addr: 0x00400889, bytes: [0x41, 0xff, 0x14, 0xdc], mnemonic: 'call', operands: '[r12+rbx*8]', comment: 'Call function at [R12 + RBX*8]' },
   { addr: 0x0040088d, bytes: [0xf4], mnemonic: 'hlt', operands: '', comment: 'Function called with controlled args!' },
 ];

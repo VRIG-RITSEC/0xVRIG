@@ -4,7 +4,7 @@ const ex08FmtWrite: Exercise = {
   id: 'logic-08',
   unitId: 'unit2-logic',
   title: '08: Format String: Writing',
-  desc: 'The <strong>%n</strong> format specifier doesn\'t print — it <strong>writes</strong>. It stores the number of characters printed so far into a memory address on the stack. Put the right address in your input, advance with %x, then %n writes to it. Change <strong>authorized</strong> from 0 to anything else.',
+  desc: 'The <strong>%n</strong> format specifier doesn\'t print — it <strong>writes</strong>. It reads a pointer from the stack and stores the number of characters printed so far into the location that pointer points to. Put the right address in your input, advance with %x, then %n writes to the pointed-to location. Change <strong>authorized</strong> from 0 to anything else.',
   source: {
     c: [
       { text: '#include <stdio.h>', cls: '' },
@@ -39,7 +39,7 @@ const ex08FmtWrite: Exercise = {
   },
   winTitle: 'FLAG{format_string_write}',
   winMsg: 'You used %n to write a value to the authorized variable! Format string bugs are powerful — they let you read AND write arbitrary memory, all through printf.',
-  realWorld: 'CVE-2012-0809: A format string vulnerability in sudo allowed local users to escalate to root via crafted environment strings passed to sudo_debug().',
+  realWorld: 'CVE-2012-0809: A format string vulnerability in sudo allowed local users to escalate to root by invoking sudo through a symlink with a crafted program name (argv[0]) that was passed to sudo_debug().',
 };
 
 export default ex08FmtWrite;

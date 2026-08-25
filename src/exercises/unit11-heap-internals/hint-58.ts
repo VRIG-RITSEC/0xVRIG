@@ -26,7 +26,7 @@ const hint58: Exercise = {
   },
   mode: 'step',
   vizMode: 'heap',
-  glibcVersion: '2.27',
+  glibcVersion: '2.23',
   heapSize: 1024,
   steps: [
     {
@@ -41,7 +41,7 @@ const hint58: Exercise = {
     },
     {
       action: 'malloc', size: 128, name: 'B', srcLine: 5,
-      log: ['action', 'malloc(128) -- chunk B: 136 bytes, right after A. B\'s P bit is set (A is in use). Note: fast bins are NOT coalesced, but chunks this size (> 80 bytes) go through the normal free path which does coalesce.'],
+      log: ['action', 'malloc(128) -- chunk B: 136 bytes, right after A. B\'s P bit is set (A is in use). Note: fast bins are NOT coalesced, but chunks this size (> 64 bytes) go through the normal free path which does coalesce.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('B', 'data'); heap.annotateField?.('B', 'size', '0x89 (136|P)'); },
     },
     {
@@ -56,7 +56,7 @@ const hint58: Exercise = {
     },
     {
       action: 'free', name: 'B', srcLine: 10,
-      log: ['action', 'free(B) -- B goes to the unsorted bin (too large for fast bins/tcache at this size). The allocator checks B\'s neighbors: A is still in use (P bit of B = 1), and C is still in use (P bit of the chunk after B = 1). No coalescing occurs. B\'s prev_size in the next chunk\'s header is set to 136 so C knows B\'s size.'],
+      log: ['action', 'free(B) -- B goes to the unsorted bin (too large for fast bins). The allocator checks B\'s neighbors: A is still in use (P bit of B = 1), and C is still in use (P bit of the chunk after C = 1). No coalescing occurs. B\'s prev_size in the next chunk\'s header is set to 136 so C knows B\'s size.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('B', 'freed'); heap.annotateField?.('B', 'fd', 'unsorted fd'); heap.annotateField?.('B', 'bk', 'unsorted bk'); },
     },
     {

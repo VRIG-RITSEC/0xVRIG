@@ -43,7 +43,7 @@ const ex24HouseOrange: Exercise = {
     return heap?.funcPtrs?.handler && heap.funcPtrs.handler.current !== symbols.normal && heap.funcPtrs.handler.current !== 0;
   },
   winTitle: 'FLAG{house_of_orange}',
-  winMsg: 'No free()? No problem. By corrupting the top chunk size and triggering a large allocation, you forced the allocator to free the old top chunk itself. Then you used the freed chunk to overwrite a function pointer. This is House of Orange \u2014 creating a free without calling free().',
+  winMsg: 'No free()? No problem. By corrupting the top chunk size and triggering a large allocation, you forced the allocator to free the old top chunk itself. Then you used the freed chunk to overwrite a function pointer. This is House of Orange \u2014 creating a free without calling free(). Note: the original House of Orange (2016) also abused _IO_FILE vtable overwrites for code execution, but glibc 2.24+ added _IO_vtable_check() to mitigate that second stage. The top-chunk corruption trick shown here still works.',
 };
 
 export default ex24HouseOrange;

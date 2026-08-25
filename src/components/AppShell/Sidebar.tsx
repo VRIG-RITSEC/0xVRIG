@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useExerciseContext } from '@/state/ExerciseContext';
 import { TRACKS, UNITS, getExercise } from '@/exercises/registry';
+import { getTrackEra } from '@/lib/era';
 
 const STORAGE_KEY = '0xvrig-sidebar-v1';
 const MOBILE_BREAKPOINT = '(max-width: 900px)';
@@ -227,7 +228,7 @@ export default function Sidebar() {
               const isTrackOpen = !!sidebarState.openTracks[track.id];
 
               return (
-                <div key={track.id} className="sidebar-track">
+                <div key={track.id} className="sidebar-track" data-era={getTrackEra(track.id)}>
                   <button
                     className="sidebar-track-header"
                     type="button"

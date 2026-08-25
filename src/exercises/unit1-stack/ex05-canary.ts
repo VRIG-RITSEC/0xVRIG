@@ -38,7 +38,7 @@ const ex05Canary: Exercise = {
     return sim.canaryIntact() && sim.getRetAddr() === symbols.win;
   },
   winTitle: 'FLAG{canary_bypassed}',
-  winMsg: 'You read the leaked secret value and carefully placed it in your payload so the tripwire stayed intact — while still overwriting the go-back address. Sneaky! This is how real attackers bypass stack canaries.',
+  winMsg: 'You read the leaked secret value and carefully placed it in your payload so the tripwire stayed intact — while still overwriting the go-back address. Sneaky! This is how real attackers bypass stack canaries. Note: on real Linux, the canary always has a null byte (0x00) as its least significant byte, which makes it harder to leak via string functions like printf (they stop at null bytes).',
   realWorld: 'Canary bypasses are common in format string attacks. CVE-2015-7547: A stack buffer overflow in glibc getaddrinfo() was exploitable despite canaries via a carefully crafted DNS response.',
 };
 

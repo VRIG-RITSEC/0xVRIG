@@ -54,7 +54,7 @@ const exercise: Exercise = {
     },
     {
       action: 'free', name: 'B', srcLine: 10,
-      log: ['action', 'HeapFree(hHeap, 0, B) -- freed and coalesced with adjacent free memory if possible. The front-end allocator (LFH) is not active yet. LFH only activates for a given size class after 17+ allocations of that size, at which point it takes over from the back-end for that bucket.'],
+      log: ['action', 'HeapFree(hHeap, 0, B) -- freed and coalesced with adjacent free memory if possible. The front-end allocator (LFH) is not active yet. LFH only activates for a given size class after 18+ allocations of that size, at which point it takes over from the back-end for that bucket.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('B', 'freed'); heap.annotateField?.('B', 'fd', 'Flink (coalesced)'); },
     },
     {

@@ -562,27 +562,42 @@ export function execCurrentStep(
       result.logs.push({ cls: 'action', msg: 'sigreturn reads the signal frame from the stack and restores all registers...' });
 
       const frameStart = sim.bufSize + sim.canarySize + sim.ebpSize + sim.retSize;
-      if (frameStart + 24 <= sim.totalSize) {
-        const eax = sim._readLE(frameStart + 0, 4);
-        const ebx = sim._readLE(frameStart + 4, 4);
-        const ecx = sim._readLE(frameStart + 8, 4);
-        const edx = sim._readLE(frameStart + 12, 4);
-        const espVal = sim._readLE(frameStart + 16, 4);
-        const eipVal = sim._readLE(frameStart + 20, 4);
+      if (frameStart + 60 <= sim.totalSize) {
+        // Real Linux x86 sigcontext layout:
+        // offset  0: gs/fs/es/ds (16 bytes) — segment registers
+        // offset 16: edi, esi, ebp, esp, ebx, edx, ecx, eax (32 bytes)
+        // offset 48: trapno (4), err (4)
+        // offset 56: eip (4)
+        const edi = sim._readLE(frameStart + 16, 4);
+        const esi = sim._readLE(frameStart + 20, 4);
+        const ebp = sim._readLE(frameStart + 24, 4);
+        const espVal = sim._readLE(frameStart + 28, 4);
+        const ebx = sim._readLE(frameStart + 32, 4);
+        const edx = sim._readLE(frameStart + 36, 4);
+        const ecx = sim._readLE(frameStart + 40, 4);
+        const eax = sim._readLE(frameStart + 44, 4);
+        // offset 48: trapno (4), offset 52: err (4)
+        const eipVal = sim._readLE(frameStart + 56, 4);
 
-        registerUpdates['eax'] = eax;
-        registerUpdates['ebx'] = ebx;
-        registerUpdates['ecx'] = ecx;
-        registerUpdates['edx'] = edx;
+        registerUpdates['edi'] = edi;
+        registerUpdates['esi'] = esi;
+        registerUpdates['ebp'] = ebp;
         registerUpdates['esp'] = espVal;
+        registerUpdates['ebx'] = ebx;
+        registerUpdates['edx'] = edx;
+        registerUpdates['ecx'] = ecx;
+        registerUpdates['eax'] = eax;
         registerUpdates['eip'] = eipVal;
 
-        result.logs.push({ cls: 'action', msg: '  EAX = <span class="log-addr">' + hex8(eax) + '</span>' });
-        result.logs.push({ cls: 'action', msg: '  EBX = <span class="log-addr">' + hex8(ebx) + '</span>' });
-        result.logs.push({ cls: 'action', msg: '  ECX = <span class="log-addr">' + hex8(ecx) + '</span>' });
-        result.logs.push({ cls: 'action', msg: '  EDX = <span class="log-addr">' + hex8(edx) + '</span>' });
+        result.logs.push({ cls: 'action', msg: '  EDI = <span class="log-addr">' + hex8(edi) + '</span>' });
+        result.logs.push({ cls: 'action', msg: '  ESI = <span class="log-addr">' + hex8(esi) + '</span>' });
+        result.logs.push({ cls: 'action', msg: '  EBP = <span class="log-addr">' + hex8(ebp) + '</span>' });
         result.logs.push({ cls: 'action', msg: '  ESP = <span class="log-addr">' + hex8(espVal) + '</span>' });
-        result.logs.push({ cls: 'action', msg: '  EIP = <span class="log-addr">' + hex8(eipVal) + '</span>' });
+        result.logs.push({ cls: 'action', msg: '  EBX = <span class="log-addr">' + hex8(ebx) + '</span>' });
+        result.logs.push({ cls: 'action', msg: '  EDX = <span class="log-addr">' + hex8(edx) + '</span>' });
+        result.logs.push({ cls: 'action', msg: '  ECX = <span class="log-addr">' + hex8(ecx) + '</span>' });
+        result.logs.push({ cls: 'action', msg: '  EAX = <span class="log-addr">' + hex8(eax) + '</span>' });
+        result.logs.push({ cls: 'action', msg: '  EIP = <span class="log-addr">' + hex8(eipVal) + '</span> (at frame+56)' });
 
         if (eipVal === symbols.win) {
           result.logs.push({ cls: 'success', msg: '\u2192 EIP points to win() \u2014 all registers set in one shot!' });

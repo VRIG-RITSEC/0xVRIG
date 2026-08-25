@@ -3,14 +3,14 @@ import { Exercise } from '../types';
 export const win41: Exercise = {
   id: 'win-41',
   unitId: 'unit8-win-stack',
-  title: '41: SafeSEH Bypass',
-  desc: 'SafeSEH validates handlers against a compile-time table. But the stack overflow still works! This exercise has a <b>stack canary</b> protecting the buffer — you need to preserve the canary value (shown in the symbol table) while overwriting the return address. Like bypassing SafeSEH by keeping protections intact.',
+  title: '41: /GS Cookie Bypass',
+  desc: 'Windows uses <b>/GS (stack cookies)</b> to detect buffer overflows. The cookie sits between your buffer and the return address — if it changes, the program aborts before returning. But if you can <b>leak the cookie value</b> (shown in the symbol table), you can include the correct value in your payload and overwrite the return address undetected.',
   source: {
     c: [
       { text: '#include <stdio.h>', cls: '' },
       { text: '', cls: '' },
-      { text: '// SafeSEH + Stack Canary', cls: 'comment' },
-      { text: '// Must preserve canary while overwriting ret', cls: 'comment' },
+      { text: '// /GS Stack Cookie protection', cls: 'comment' },
+      { text: '// Must preserve cookie while overwriting ret', cls: 'comment' },
       { text: '', cls: '' },
       { text: 'void win() { system("cmd"); }', cls: '' },
       { text: '', cls: '' },
@@ -31,6 +31,6 @@ export const win41: Exercise = {
   check(sim, _heap, symbols) {
     return sim.canaryIntact() && sim.getRetAddr() === symbols.win;
   },
-  winTitle: 'SafeSEH Bypassed!',
-  winMsg: 'You preserved the canary while redirecting execution — like bypassing SafeSEH validation by keeping the protection data intact.',
+  winTitle: '/GS Cookie Bypassed!',
+  winMsg: 'You included the correct cookie value in your payload, keeping the stack protection intact while redirecting execution. In real exploits, attackers leak the cookie via format strings, info leaks, or brute force.',
 };

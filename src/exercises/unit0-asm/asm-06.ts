@@ -7,19 +7,20 @@ const instructions: AsmInstruction[] = [
   { addr: 0x0804800a, bytes: [0x01, 0xc3], mnemonic: 'add', operands: 'ebx, eax', comment: 'Add counter to accumulator' },
   { addr: 0x0804800c, bytes: [0x40], mnemonic: 'inc', operands: 'eax', comment: 'Increment counter' },
   { addr: 0x0804800d, bytes: [0x83, 0xf8, 0x06], mnemonic: 'cmp', operands: 'eax, 6', comment: 'Compare counter to 6' },
-  { addr: 0x08048010, bytes: [0x7e, 0xf8], mnemonic: 'jle', operands: '0x0804800a', comment: 'Loop back if <=5' },
+  { addr: 0x08048010, bytes: [0x7c, 0xf8], mnemonic: 'jl', operands: '0x0804800a', comment: 'Loop back if <6' },
   { addr: 0x08048012, bytes: [0x83, 0xfb, 0x0f], mnemonic: 'cmp', operands: 'ebx, 15', comment: 'Check result' },
-  { addr: 0x08048015, bytes: [0x74, 0x05], mnemonic: 'je', operands: '0x0804801c', comment: 'Jump if equal' },
+  { addr: 0x08048015, bytes: [0x74, 0x07], mnemonic: 'je', operands: '0x0804801e', comment: 'Jump if equal' },
   { addr: 0x08048017, bytes: [0xb9, 0x00, 0x00, 0x00, 0x00], mnemonic: 'mov', operands: 'ecx, 0', comment: 'Failure path' },
-  { addr: 0x0804801c, bytes: [0xb9, 0x01, 0x00, 0x00, 0x00], mnemonic: 'mov', operands: 'ecx, 1', comment: 'Success path' },
-  { addr: 0x08048021, bytes: [0xf4], mnemonic: 'hlt', operands: '', comment: '' },
+  { addr: 0x0804801c, bytes: [0xeb, 0x05], mnemonic: 'jmp', operands: '0x08048023', comment: 'Skip success' },
+  { addr: 0x0804801e, bytes: [0xb9, 0x01, 0x00, 0x00, 0x00], mnemonic: 'mov', operands: 'ecx, 1', comment: 'Success path' },
+  { addr: 0x08048023, bytes: [0xf4], mnemonic: 'hlt', operands: '', comment: '' },
 ];
 
 export const asm06: Exercise = {
   id: 'asm-06',
   unitId: 'unit0-asm',
   title: 'Jumps',
-  desc: '<b>Goal:</b> See conditional jumps in action. This code sums 1+2+3+4+5 using a loop. JLE (Jump if Less or Equal) creates the loop. JE (Jump if Equal) checks the result. Watch EIP jump backward!',
+  desc: '<b>Goal:</b> See conditional jumps in action. This code sums 1+2+3+4+5 using a loop. JL (Jump if Less) creates the loop. JE (Jump if Equal) checks the result. Watch EIP jump backward!',
   source: {
     c: [
       { text: '// Conditional Jumps', cls: 'comment' },
@@ -35,7 +36,7 @@ export const asm06: Exercise = {
       { text: '  add ebx, eax', cls: 'asm' },
       { text: '  inc eax', cls: 'asm' },
       { text: '  cmp eax, 6', cls: 'asm' },
-      { text: '  jle loop', cls: 'asm' },
+      { text: '  jl loop', cls: 'asm' },
       { text: '', cls: '' },
       { text: '  cmp ebx, 15', cls: 'asm' },
       { text: '  je success', cls: 'asm' },
@@ -50,7 +51,7 @@ export const asm06: Exercise = {
   asmInstructions: instructions,
   asmQuiz: [
     { question: 'What is EBX at the end? (sum of 1+2+3+4+5)', answer: 15, format: 'decimal', hint: 'The loop adds counter values 1 through 5.' },
-    { question: 'How many times does the loop body execute?', answer: 5, format: 'decimal', hint: 'Counter goes 1,2,3,4,5 — the JLE falls through when counter reaches 6.' },
+    { question: 'How many times does the loop body execute?', answer: 5, format: 'decimal', hint: 'Counter goes 1,2,3,4,5 — the JL falls through when counter reaches 6 (6 is not less than 6).' },
   ],
   check: () => false,
   winTitle: 'Jump Master!',

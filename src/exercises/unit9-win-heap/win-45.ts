@@ -4,7 +4,7 @@ export const win45: Exercise = {
   id: 'win-45',
   unitId: 'unit9-win-heap',
   title: '45: Double Free',
-  desc: 'Windows Segment Heap has protections against double-free, but older NT heap doesn\'t always catch it. This exercise simulates a double-free: free chunk A, free chunk B, free chunk A again. Now <code>malloc</code> returns A twice — write <code>win()</code> into the function pointer.',
+  desc: 'Windows Segment Heap has protections against double-free, but older NT heap doesn\'t always catch it. This exercise simulates a double-free using the classic A-B-A pattern (free A, free B, free A): the intervening B-free prevents simple consecutive duplicate detection. Now <code>malloc</code> returns A twice — write <code>win()</code> into the function pointer. <em>Note:</em> This demonstrates the glibc-style A-B-A double-free concept applied to Windows heap exploitation.',
   source: {
     c: [
       { text: '#include <stdlib.h>', cls: '' },

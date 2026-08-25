@@ -20,9 +20,9 @@ const instructions: AsmInstruction[] = [
   { addr: 0x08048005, bytes: [0x3b, 0x05, 0x00, 0xa0, 0x04, 0x08], mnemonic: 'cmp', operands: 'eax, [0x0804a000]', comment: 'Compare x with array1_size (= 16)' },
   { addr: 0x0804800b, bytes: [0x7d, 0x0e], mnemonic: 'jge', operands: '0x0804801b', comment: 'If x >= size, jump to out_of_bounds' },
   // Speculative execution path (CPU predicts branch NOT taken):
-  { addr: 0x0804800d, bytes: [0x8a, 0x98, 0x00, 0xb0, 0x04, 0x08], mnemonic: 'mov', operands: 'ebx, [0x0804b000 + eax]', comment: 'SPECULATIVE: load array1[x] — leaks secret byte' },
-  { addr: 0x08048013, bytes: [0xc1, 0xe3, 0x08], mnemonic: 'mov', operands: 'ecx, ebx', comment: 'Multiply by 256 (shift left 8) for cache line' },
-  { addr: 0x08048016, bytes: [0x8a, 0x91, 0x00, 0xc0, 0x04, 0x08], mnemonic: 'mov', operands: 'edx, [0x0804c000 + ecx]', comment: 'SPECULATIVE: access array2[secret * 256] — cache side channel' },
+  { addr: 0x0804800d, bytes: [0x8b, 0x98, 0x00, 0xb0, 0x04, 0x08], mnemonic: 'mov', operands: 'ebx, [0x0804b000 + eax]', comment: 'SPECULATIVE: load array1[x] — leaks secret byte' },
+  { addr: 0x08048013, bytes: [0xc1, 0xe3, 0x08], mnemonic: 'shl', operands: 'ebx, 8', comment: 'Multiply by 256 (shift left 8) for cache line' },
+  { addr: 0x08048016, bytes: [0x8b, 0x93, 0x00, 0xc0, 0x04, 0x08], mnemonic: 'mov', operands: 'edx, [0x0804c000 + ebx]', comment: 'SPECULATIVE: access array2[secret * 256] — cache side channel' },
   // Out of bounds label
   { addr: 0x0804801b, bytes: [0x90], mnemonic: 'nop', operands: '', comment: 'out_of_bounds: branch target (architectural path)' },
   { addr: 0x0804801c, bytes: [0xf4], mnemonic: 'hlt', operands: '', comment: '' },

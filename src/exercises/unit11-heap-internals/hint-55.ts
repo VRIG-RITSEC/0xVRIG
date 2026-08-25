@@ -4,21 +4,21 @@ const hint55: Exercise = {
   id: 'hint-55',
   unitId: 'unit11-heap-internals',
   title: '55: Bin Types',
-  desc: '<b>Goal:</b> Learn the four bin categories that glibc uses to organize freed chunks. <strong>Fast bins</strong> (LIFO, sizes 16-80) for speed, the <strong>unsorted bin</strong> (staging area for recently freed chunks), <strong>small bins</strong> (exact-size FIFO lists), and <strong>large bins</strong> (sorted ranges for big allocations).',
+  desc: '<b>Goal:</b> Learn the four bin categories that glibc uses to organize freed chunks. <strong>Fast bins</strong> (LIFO, sizes 16-64) for speed, the <strong>unsorted bin</strong> (staging area for recently freed chunks), <strong>small bins</strong> (exact-size FIFO lists), and <strong>large bins</strong> (sorted ranges for big allocations).',
   source: {
     c: [
       { text: '// Observing different bin types', cls: 'cmt' },
       { text: '#include <stdlib.h>', cls: '' },
       { text: '', cls: '' },
       { text: 'int main() {', cls: '' },
-      { text: '    // Small chunk (fastbin/tcache range)', cls: 'cmt' },
+      { text: '    // Small chunk (fastbin range)', cls: 'cmt' },
       { text: '    char *s = malloc(24);', cls: 'highlight' },
       { text: '    // Medium chunk (small bin range)', cls: 'cmt' },
       { text: '    char *m = malloc(256);', cls: 'highlight' },
       { text: '    // Prevent top-chunk consolidation', cls: 'cmt' },
       { text: '    char *guard = malloc(16);', cls: 'highlight' },
       { text: '', cls: '' },
-      { text: '    free(s);  // -> tcache or fastbin', cls: 'highlight' },
+      { text: '    free(s);  // -> fastbin', cls: 'highlight' },
       { text: '    free(m);  // -> unsorted bin', cls: 'highlight vuln' },
       { text: '    return 0;', cls: '' },
       { text: '}', cls: '' },
@@ -26,7 +26,7 @@ const hint55: Exercise = {
   },
   mode: 'step',
   vizMode: 'heap',
-  glibcVersion: '2.27',
+  glibcVersion: '2.23',
   heapSize: 512,
   steps: [
     {
@@ -36,12 +36,12 @@ const hint55: Exercise = {
     },
     {
       action: 'malloc', size: 24, name: 'S', srcLine: 5,
-      log: ['action', 'malloc(24) -- allocates a 32-byte chunk (24 data + 8 header). This is in the "small" range. When freed, it will first go to the tcache (or fastbin if tcache is full). Chunk sizes up to 80 bytes qualify for fast bins.'],
+      log: ['action', 'malloc(24) -- allocates a 32-byte chunk (24 data + 8 header). This is in the "small" range. When freed, it will go to the fast bin (LIFO, singly-linked). Chunk sizes up to 64 bytes qualify for fast bins.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('S', 'data'); heap.annotateField?.('S', 'size', '0x21 (32|P)'); },
     },
     {
       action: 'malloc', size: 256, name: 'M', srcLine: 7,
-      log: ['action', 'malloc(256) -- allocates a 264-byte chunk. This is too large for fast bins (max ~80 bytes). When freed, it will go to the unsorted bin first, then get sorted into a small bin (exact size) or large bin (size range).'],
+      log: ['action', 'malloc(256) -- allocates a 264-byte chunk. This is too large for fast bins (max 64 bytes). When freed, it will go to the unsorted bin first, then get sorted into a small bin (exact size) or large bin (size range).'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('M', 'data'); heap.annotateField?.('M', 'size', '0x109 (264|P)'); },
     },
     {
@@ -51,12 +51,12 @@ const hint55: Exercise = {
     },
     {
       action: 'free', name: 'S', srcLine: 11,
-      log: ['action', 'free(S) -- the 32-byte chunk goes to the tcache (per-thread cache, LIFO). Tcache is checked first on both malloc and free. If the tcache bin for this size is full (7 entries), it would go to the corresponding fast bin instead.'],
-      vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('S', 'freed'); heap.annotateField?.('S', 'fd', 'tcache fd'); },
+      log: ['action', 'free(S) -- the 32-byte chunk goes to the fast bin (singly-linked, LIFO). Fast bins are never coalesced with neighbors -- speed over memory efficiency. There is one fast bin per chunk size (16, 24, 32, ... up to 64 bytes).'],
+      vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('S', 'freed'); heap.annotateField?.('S', 'fd', 'fastbin fd'); },
     },
     {
       action: 'init',
-      log: ['info', 'Fast bins are singly-linked LIFO lists. There is one fast bin per chunk size (16, 24, 32, ... up to 80 bytes). They are never coalesced with neighbors -- speed over memory efficiency.'],
+      log: ['info', 'Fast bins are singly-linked LIFO lists. There is one fast bin per chunk size (16, 24, 32, ... up to 64 bytes). They are never coalesced with neighbors -- speed over memory efficiency.'],
       vizAction: (_sim: any, heap: any) => { if (!heap) return; heap.highlightChunk?.('S', 'freed'); },
     },
     {

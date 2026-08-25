@@ -125,7 +125,7 @@ const exercise: Exercise = {
     },
     {
       action: 'init',
-      log: ['info', 'IBT and ROP: a ROP gadget typically starts in the middle of a function (not at ENDBR64). With IBT, the first indirect jump in a ROP chain would land at a non-ENDBR64 instruction and trigger #CP. This dramatically reduces the usable gadget space -- only function entries are valid targets.'],
+      log: ['info', 'IBT and JOP: IBT blocks Jump-Oriented Programming (JOP) by requiring ENDBR64 at every indirect call/jump target. An attacker who hijacks a function pointer to point mid-function will trigger #CP. Shadow stacks block ROP (every RET is validated); IBT blocks JOP (every indirect CALL/JMP is validated). Together they cover both forward and backward edges.'],
       vizAction: (sim: any, heap: any, aux?: any) => {
         if (!sim) return;
         sim.clearHighlight();
@@ -138,7 +138,7 @@ const exercise: Exercise = {
     },
     {
       action: 'done',
-      log: ['success', 'Intel CET: SHSTK hardware-validates return addresses (blocks ROP), IBT requires ENDBR64 at indirect branch targets (blocks JOP and reduces gadgets). Both enforced by CPU with #CP exceptions. Supported in Windows 11 and Linux 5.18+. The strongest hardware CFI currently deployed.'],
+      log: ['success', 'Intel CET: SHSTK hardware-validates return addresses (blocks ROP), IBT requires ENDBR64 at indirect branch targets (blocks JOP and reduces gadgets). Both enforced by CPU with #CP exceptions. Supported in Windows 11 and Linux 6.6+ (user-space shadow stacks). The strongest hardware CFI currently deployed.'],
       vizAction: (sim: any, heap: any, aux?: any) => {
         if (!sim) return;
         sim.clearHighlight();

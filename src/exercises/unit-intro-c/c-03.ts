@@ -17,7 +17,7 @@ const c03: Exercise = {
       { text: '    // name: [A][l][i][c][e][\\0][ ][ ]', cls: 'cmt' },
       { text: '    // buf:  [ ][ ][ ][ ][ ][ ][ ][ ]', cls: 'cmt' },
       { text: '    name[7] = \'Z\';', cls: '' },
-      { text: '    name[10] = \'!!\';  // out of bounds!', cls: 'highlight vuln' },
+      { text: '    name[10] = \'!\';  // out of bounds!', cls: 'highlight vuln' },
       { text: '    return 0;', cls: '' },
       { text: '}', cls: '' },
     ],
@@ -35,7 +35,7 @@ const c03: Exercise = {
     {
       action: 'init',
       srcLine: 5,
-      log: ['info', 'char buf[8] creates another 8-byte block right next to name in memory. Arrays in C are laid out contiguously -- each element sits right after the previous one, with no gaps or fences between different arrays.'],
+      log: ['info', 'char buf[8] creates another 8-byte block. Elements within a single array are always contiguous in C. However, the compiler decides where to place separate local variables -- in this simplified model they happen to be adjacent, but that is not guaranteed by the language.'],
       vizAction: (sim: any) => { if (!sim) return; sim.markRegion(8, 16); },
     },
     {

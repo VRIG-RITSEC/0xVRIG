@@ -102,7 +102,7 @@ export interface Exercise {
   safeSEH?: boolean;
   sehop?: boolean;
   windowsHeapType?: 'lfh' | 'segment';
-  glibcVersion?: '2.23' | '2.27' | '2.31' | '2.35';
+  glibcVersion?: '2.23' | '2.27' | '2.29' | '2.31' | '2.32' | '2.35';
   winVersion?: 'win7' | 'win8' | 'win10';
   showSymbols?: boolean;
   showBuilder?: boolean;

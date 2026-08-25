@@ -40,8 +40,8 @@ const adv2101: Exercise = {
   bufSize: 16,
   showSymbols: true,
   showBuilder: true,
-  check(sim, _heap, symbols) {
-    return sim.getRetAddr() === symbols.win;
+  check(sim) {
+    return sim.inputLen > sim.bufSize;
   },
   winTitle: 'FLAG{data_only_attack}',
   winMsg: 'You corrupted a non-control variable (isAdmin) without modifying any code pointer. Stack canaries, CFI, and shadow stacks would not have caught this — they only protect control flow. Data-only attacks remain effective against all control-flow integrity defenses, which is why Data-Flow Integrity (DFI) research is an active area.',

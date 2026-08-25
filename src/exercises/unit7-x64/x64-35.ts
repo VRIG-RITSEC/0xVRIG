@@ -10,7 +10,7 @@ const instructions: AsmInstruction[] = [
   { addr: 0x00000854, bytes: [0x48, 0x89, 0xc2], mnemonic: 'mov', operands: 'rdx, rax', comment: 'RDX = absolute address of win()' },
   // Partial overwrite approach
   { addr: 0x00000857, bytes: [0x48, 0xb8], mnemonic: 'mov', operands: 'rax, 0x0000555555554900', comment: 'Original return address' },
-  { addr: 0x00000861, bytes: [0x66, 0xb8, 0x30, 0x08], mnemonic: 'mov', operands: 'eax, 0x0830', comment: 'Overwrite just last 2 bytes → win()' },
+  { addr: 0x00000861, bytes: [0x66, 0xb8, 0x30, 0x48], mnemonic: 'mov', operands: 'ax, 0x4830', comment: 'Overwrite just last 2 bytes → win()' },
   { addr: 0x00000865, bytes: [0xf4], mnemonic: 'hlt', operands: '', comment: 'Partial overwrite bypasses full ASLR!' },
 ];
 
@@ -46,7 +46,7 @@ export const x6435: Exercise = {
   protections: [{ name: 'PIE', status: 'bypassed' }],
   asmQuiz: [
     { question: 'How many bits of the address are fixed (page offset) regardless of ASLR/PIE?', answer: 12, format: 'decimal', hint: 'Pages are 4KB = 2^12, so the last 12 bits are always the same.' },
-    { question: 'If win() is at offset 0x830 in the binary, what 2 bytes would you overwrite the return address with?', answer: 0x0830, format: 'hex', hint: 'Just the offset within the page.' },
+    { question: 'If win() is at offset 0x830 in the binary (loaded at 0x555555554000), what 2 bytes would you overwrite the return address with?', answer: 0x4830, format: 'hex', hint: 'win() loaded address is 0x555555554830. The bottom 2 bytes are 0x4830.' },
   ],
   check: () => false,
   winTitle: 'PIE Bypassed!',

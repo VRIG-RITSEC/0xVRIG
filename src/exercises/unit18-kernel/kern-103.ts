@@ -16,8 +16,8 @@ const kern103: Exercise = {
       { text: 'static int __init hello_init(void) {', cls: '', fn: true },
       { text: '    printk(KERN_INFO "Hello from ring 0!\\n");', cls: 'highlight' },
       { text: '    // We are running in kernel space now', cls: 'cmt' },
-      { text: '    // Addresses here start at 0xffff8000...', cls: 'cmt' },
-      { text: '    // Kernel stack: 2 pages (8KB) per task', cls: 'cmt' },
+      { text: '    // 64-bit: addresses start at 0xffff800000000000', cls: 'cmt' },
+      { text: '    // Kernel stack: 4 pages (16KB) per task', cls: 'cmt' },
       { text: '    // KASLR adds 9 bits of entropy', cls: 'cmt' },
       { text: '    return 0;', cls: '' },
       { text: '}', cls: '' },
@@ -40,16 +40,16 @@ const kern103: Exercise = {
       hint: 'The most privileged ring on x86. User programs run in ring 3.',
     },
     {
-      question: 'On x86-64 Linux, kernel addresses start at what prefix? (simplified 32-bit representation)',
-      answer: 0xffff8000,
-      format: 'hex',
-      hint: 'Kernel virtual addresses occupy the upper half of the 64-bit address space.',
+      question: 'On x86-64 Linux, kernel virtual addresses start at 0xffff8000_________. How many trailing zero nibbles?',
+      answer: 8,
+      format: 'decimal',
+      hint: 'The full prefix is 0xffff800000000000 — 8 zero hex digits after 0xffff8000.',
     },
     {
-      question: 'Default kernel stack size in pages? (1 page = 4KB)',
-      answer: 2,
+      question: 'Default kernel stack size in pages on x86-64? (1 page = 4KB, since kernel 3.15)',
+      answer: 4,
       format: 'decimal',
-      hint: '8KB total. Each page is 4KB.',
+      hint: '16KB total. Each page is 4KB. Increased from 8KB (2 pages) in kernel 3.15.',
     },
     {
       question: 'How many bits of entropy does KASLR add on x86-64?',
@@ -60,7 +60,7 @@ const kern103: Exercise = {
   ],
   check: () => false,
   winTitle: 'Kernel Fundamentals Mastered!',
-  winMsg: 'You understand the basics of kernel memory layout: ring 0 privilege, high-address kernel space, the per-task 8KB kernel stack, and the 9 bits of KASLR entropy. These fundamentals are required for all kernel exploitation techniques.',
+  winMsg: 'You understand the basics of kernel memory layout: ring 0 privilege, high-address kernel space, the per-task 16KB kernel stack (since 3.15), and the 9 bits of KASLR entropy. These fundamentals are required for all kernel exploitation techniques.',
 };
 
 export default kern103;
