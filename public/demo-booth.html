@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>0xVRIG · Walk-in demo QR</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #eeeee8; color: #191b16; font: 18px/1.5 system-ui, sans-serif; }
+  main { width: min(100%, 760px); margin: 40px auto; padding: 56px 40px; background: white; text-align: center; }
+  .brand { font: 700 26px ui-monospace, monospace; letter-spacing: -1px; margin-bottom: 48px; }
+  .brand span { color: #73786a; font-weight: 400; }
+  h1 { font-size: clamp(32px, 7vw, 58px); line-height: 1.08; letter-spacing: -2px; margin: 0 0 20px; }
+  p { margin: 12px 0; }
+  img { width: min(100%, 300px); height: auto; display: block; margin: 28px auto 12px; }
+  a { color: inherit; text-underline-offset: 4px; overflow-wrap: anywhere; font-size: 16px; }
+  footer { margin-top: 48px; color: #575e50; font-size: 14px; }
+  .print { display: block; margin: 20px auto; padding: 12px 20px; font: inherit; cursor: pointer; }
+  @media print { @page { margin: 16mm; } body { background: white; } main { margin: 0; width: 100%; padding: 24px 0; } .print { display: none; } a { text-decoration: none; } }
+</style>
+<main>
+  <div class="brand"><span>0x</span>VRIG_</div>
+  <h1>Crash it.<br>Then take control.</h1>
+  <p>About a minute. No coding needed.</p>
+  <a href="https://aeshus.github.io/0xVRIG/demo"><img src="./demo-qr.svg" width="300" height="300" alt="Scan to open the 0xVRIG one-minute demo"></a>
+  <a href="https://aeshus.github.io/0xVRIG/demo">aeshus.github.io/0xVRIG/demo</a>
+  <footer>Vulnerability Research Interest Group · RITSEC<br>Try it here. Keep exploring on your phone.</footer>
+</main>
+<button class="print" onclick="window.print()">Print booth sign</button>
+</html>

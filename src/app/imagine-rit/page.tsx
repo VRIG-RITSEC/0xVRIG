@@ -70,6 +70,7 @@ export default function ImagineRitPage() {
             <a href="https://ritsec.club" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-secondary)' }}>ritsec.club</a>.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <button className="link-button secondary-accent" onClick={() => router.push('/demo')}>Try the 1-minute demo</button>
             <button
               className="link-button primary"
               onClick={() => router.push(`/imagine-rit/${nextExercise.id}`)}

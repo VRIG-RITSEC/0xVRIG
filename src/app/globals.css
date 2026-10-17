@@ -109,6 +109,15 @@ body.intro-page::before {
   display: none;
 }
 
+body.demo-page {
+  background: #008080;
+}
+
+body.demo-page::before,
+body.demo-page::after {
+  display: none;
+}
+
 body::before {
   content: '';
   position: fixed;

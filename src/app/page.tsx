@@ -186,6 +186,11 @@ export default function Dashboard() {
         Learn binary exploitation through four eras of computing
       </p>
 
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1.5rem' }}>
+        <button className="link-button primary" onClick={() => router.push('/demo')}>Try the 1-minute demo</button>
+        <button className="link-button secondary" onClick={() => router.push('/demo/slideshow')}>Watch the booth demo</button>
+      </div>
+
       <div style={{
         marginBottom: '1.5rem',
         padding: '0.75rem 1rem',
