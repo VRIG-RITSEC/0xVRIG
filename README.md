@@ -8,10 +8,10 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 `/demo/slideshow` is an unattended booth display. It types a name, overflows memory, crashes, repairs the payload, and reaches admin in a repeating **45-second loop**. Use the controls to choose 30, 45, or 60 seconds, pause/play, restart, jump to a step, or enter fullscreen. It pauses its clock in hidden tabs and disables typing/confetti animations for reduced-motion preferences. Watching the slideshow does not read or change personal challenge progress.
 
-The QR code links to `https://aeshus.github.io/0xVRIG/demo`. Print `/0xVRIG/demo-booth.html` on the deployed site or use `public/demo-qr.svg`. To change the QR destination, update the booth HTML and slideshow URL, then regenerate it:
+The QR code links to `https://vrig-ritsec.github.io/0xVRIG/demo`. Print `/0xVRIG/demo-booth.html` on the deployed site or use `public/demo-qr.svg`. To change the QR destination, update the booth HTML and slideshow URL, then regenerate it:
 
 ```sh
-pnpm dlx qrcode --type svg --output public/demo-qr.svg https://aeshus.github.io/0xVRIG/demo
+pnpm dlx qrcode --type svg --output public/demo-qr.svg https://vrig-ritsec.github.io/0xVRIG/demo
 ```
 
 Run locally with `pnpm dev`. Verify with `pnpm test`, `pnpm lint`, `pnpm typecheck`, and `pnpm build`. Production paths include `/0xVRIG`.

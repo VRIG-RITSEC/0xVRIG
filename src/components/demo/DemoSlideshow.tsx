@@ -87,7 +87,7 @@ export default function DemoSlideshow() {
           </section>
           <aside className={styles.qrPanel} aria-label="Try the interactive demo">
             <Image src={`${process.env.NODE_ENV === 'production' ? '/0xVRIG' : ''}/demo-qr.svg`} width={176} height={176} alt="QR code for the one-minute interactive demo" unoptimized />
-            <div><h2>Your turn.</h2><p>Scan to crash it, fix it, and become admin.</p><Link href="/demo">Try the one-minute demo →</Link><span className={styles.qrUrl}>aeshus.github.io/0xVRIG/demo</span></div>
+            <div><h2>Your turn.</h2><p>Scan to crash it, fix it, and become admin.</p><Link href="/demo">Try the one-minute demo →</Link><span className={styles.qrUrl}>vrig-ritsec.github.io/0xVRIG/demo</span></div>
           </aside>
         </div>
       </div>
