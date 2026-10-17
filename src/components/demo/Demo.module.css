@@ -25,7 +25,7 @@
 .headerLinks a { display: inline-flex; align-items: center; min-height: 44px; font-size: 15px; font-weight: 600; }
 .skipLink { position: absolute; left: 16px; top: -100px; padding: 12px; z-index: 10; background: white; }
 .skipLink:focus { top: 10px; }
-.main { display: block; width: calc(100% - 32px); max-width: 720px; margin: 28px auto 20px; padding: 3px; overflow: visible; min-width: 0; background: #c0c0c0; border: 2px outset #fff; box-shadow: 3px 3px #003f3f; }
+.main { display: block; width: calc(100% - 32px); max-width: 720px; margin: 28px auto 20px; padding: 3px; overflow: visible; min-width: 0; background: #c0c0c0; border: 2px outset #fff; box-shadow: none; }
 .windowTitle { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 7px 10px; background: linear-gradient(90deg, #00007b, #1084d0); color: white; font-size: 16px; font-weight: 700; }
 .windowControls { flex-shrink: 0; color: black; background: #c0c0c0; border: 2px outset white; padding: 0 4px; font: 14px/1.2 Arial, sans-serif; letter-spacing: 2px; }
 .windowBody { padding: 24px; }
@@ -146,7 +146,7 @@
   .nextSteps { padding: 0 12px 20px; }
 }
 
-.showroom { display: block; width: calc(100% - 40px); max-width: 1220px; margin: 24px auto; padding: 3px; min-width: 0; overflow: visible; background: #c0c0c0; border: 2px outset white; box-shadow: 3px 3px #003f3f; }
+.showroom { display: block; width: calc(100% - 40px); max-width: 1220px; margin: 24px auto; padding: 3px; min-width: 0; overflow: visible; background: #c0c0c0; border: 2px outset white; box-shadow: none; }
 .showroom:fullscreen { width: 100%; max-width: none; height: 100dvh; margin: 0; padding: 8px; background: #c0c0c0; overflow: auto; }
 .showroomBody { padding: 20px; }
 .showroomHeading { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
@@ -166,7 +166,7 @@
 .narrationBody { padding: 18px; }
 .narrationBody > h2 { font-size: clamp(24px, 2.5vw, 32px); line-height: 1.15; margin-bottom: 14px; text-wrap: balance; }
 .narrationBody > p { font-size: 19px; line-height: 1.5; }
-.errorDialog { margin-top: 18px; border: 2px outset white; background: #c0c0c0; padding: 3px; box-shadow: 2px 2px #555; }
+.errorDialog { margin-top: 18px; border: 2px outset white; background: #c0c0c0; padding: 3px; box-shadow: none; }
 .errorDialog > p { padding: 16px 10px; display: flex; align-items: center; gap: 14px; font-size: 16px; }
 .errorIcon { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #c40000; color: white; font-size: 30px; font-weight: 700; }
 .adminDialog { display: flex; flex-direction: column; gap: 6px; background: #d7f0dc; color: #004c19; border: 2px inset #a0c7a7; margin-top: 18px; padding: 14px; font-size: 16px; }
